@@ -4,6 +4,7 @@
     "description": "",
     "main": "index.js",
     "scripts": {
+        "heroku-postbuild": "gulp",
         "build": "gulp",
         "start": "node ./dist/start.js"
     },
