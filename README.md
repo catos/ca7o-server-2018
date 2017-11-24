@@ -8,6 +8,10 @@
 - Tail logs: `heroku logs --tail`
 - Check how many dynos are running: `heroku ps`
 - Run app locally: `heroku local -p 1337`
+- So that dev dependencies from package.json get installed: heroku config:set NPM_CONFIG_PRODUCTION=false --app ca7o-server
+
+## Stuff
+- npm ls -g --depth 0
 
 ## Run the stuff
 - npm run build // (or just 'gulp') build server
