@@ -2,7 +2,7 @@
 "use strict";
 
 //module dependencies
-var server = require("../server/server");
+var server = require("./server");
 var debug = require("debug")("express:server");
 var http = require("http");
 

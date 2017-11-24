@@ -4,10 +4,8 @@
     "description": "",
     "main": "index.js",
     "scripts": {
-        "test": "echo \"Error: no test specified\" && exit 1",
-        "build-server": "gulp",
-        "start-server": "node ./dist/bin/www",
-        "start": "ng serve"
+        "build": "gulp",
+        "start": "node ./dist/start.js"
     },
     "keywords": [],
     "author": "",

@@ -15,21 +15,21 @@ gulp.task("clean", (done) => {
 * Copy start script.
 */
 gulp.task("copy", () => {
-    return gulp.src("server/bin/*")
-        .pipe(gulp.dest("dist/bin"));
+    return gulp.src("src/start.js")
+        .pipe(gulp.dest("dist"));
 });
 
 /**
 * Build the server.
 */
 gulp.task("build:express", () => {
-    const project = tsc.createProject("server/tsconfig.json");
-    const result = gulp.src("server/src/**/*.ts")
+    const project = tsc.createProject("src/tsconfig.json");
+    const result = gulp.src("src/**/*.ts")
         .pipe(sourceMaps.init())
         .pipe(project());
     return result.js
         .pipe(sourceMaps.write())
-        .pipe(gulp.dest("dist/server"));
+        .pipe(gulp.dest("dist"));
 });
 
 /**
