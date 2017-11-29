@@ -10,15 +10,14 @@
 - Run app locally: `heroku local -p 1337`
 - So that dev dependencies from package.json get installed: heroku config:set NPM_CONFIG_PRODUCTION=false --app ca7o-server
 
-## Stuff
+## NPM
 - npm ls -g --depth 0
-
-## Run the stuff
 - npm run build // (or just 'gulp') build server
 - npm start // node ./dist/start.js
 
-## Mean App Server
-- http://brianflove.com/2017/07/16/mean-app-server/
+## TODO
+- NodeJS JWT Auth sample https://github.com/auth0-blog/nodejs-jwt-authentication-sample 
+- Mean App Server http://brianflove.com/2017/07/16/mean-app-server/
 
 ## tsconfig
 - https://www.typescriptlang.org/docs/handbook/tsconfig-json.html
