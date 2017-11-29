@@ -56,8 +56,7 @@ export class Server {
             allowedHeaders: ["Origin", "X-Requested-With", "Content-Type", "Accept", "X-Access-Token"],
             credentials: true,
             methods: "GET,HEAD,OPTIONS,PUT,PATCH,POST,DELETE",
-            origin: "https://ca7o.herokuapp.com",
-            // origin: "http://localhost:4200",
+            origin: ["https://ca7o.herokuapp.com", "http://localhost:4200"],
             preflightContinue: false
         };
         router.use(cors(corsOptions));
