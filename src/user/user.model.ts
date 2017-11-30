@@ -17,16 +17,19 @@ export const User = mongoose.model<UserModel, UserModelStatic>("User", userSchem
 /*
 {
   "name": "Cato Skogholt",
+  "type": 0,
   "username": "cskogholt@gmail.com",
   "password": "cato123"
 }
 {
   "name": "Tom Stang",
+  "type": 1,
   "username": "tom@stang.no",
   "password": "tom123"
 }
 {
   "name": "Test Bruker",
+  "type": 1,
   "username": "test@gmail.com",
   "password": "test123"
 }

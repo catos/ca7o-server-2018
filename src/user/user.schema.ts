@@ -2,6 +2,7 @@ import { Schema } from "mongoose";
 
 export var userSchema: Schema = new Schema({
     name: String,
+    type: Number,
     username: String,
     password: String
     // name: { type: String, required: true },
