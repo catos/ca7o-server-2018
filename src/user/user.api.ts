@@ -82,7 +82,8 @@ export class UserApi {
             }
 
             user.remove().then(() => {
-                res.sendStatus(200);
+                // res.sendStatus(200);
+                res.json(user.toObject());
                 next();
             }).catch(next);
         }).catch(next);
@@ -130,7 +131,16 @@ export class UserApi {
      */
     public list(req: Request, res: Response, next: NextFunction) {
         // get users
-        User.find().then(users => {
+        let filters = {}
+        if (req.query.q !== undefined) {
+            filters = {
+                $or: [
+                    { "name": { "$regex": req.query.q, "$options": "i" } },
+                    { "username": { "$regex": req.query.q, "$options": "i" } }
+                ]
+            }
+        }
+        User.find(filters).then(users => {
             res.json(users.map(user => user.toObject()));
             next();
         }).catch(next);
