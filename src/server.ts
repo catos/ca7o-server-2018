@@ -1,12 +1,20 @@
-import * as bodyParser from "body-parser";
-import * as express from "express";
-import * as morgan from "morgan";
-import * as path from "path";
-import * as cors from "cors";
-import errorHandler = require("errorhandler");
-import mongoose = require("mongoose");
+import * as bodyParser from 'body-parser'
+import * as express from 'express'
+import * as morgan from 'morgan'
+import * as path from 'path'
+import * as cors from 'cors'
+import errorHandler = require('errorhandler')
+import mongoose = require('mongoose')
 
-import { UserApi } from './user/user.api';
+import { serverConfig } from './server.config'
+import { BaseMongooseRepository } from './shared/base-mongoose.repository'
+import { AuthService } from './auth/auth.service'
+import { UserEndpoint } from './user/user.endpoint'
+import { IUser } from './user/user.interface';
+import { userSchema } from './user/user.model';
+import { AuthEndpoint } from './auth/auth.endpoint';
+import { BaseEndpoint } from './shared/base.endpoint';
+import { IEndpoint } from './shared/endpoint.interface';
 
 /**
  * The server.
@@ -15,100 +23,108 @@ import { UserApi } from './user/user.api';
  */
 export class Server {
 
+    endpoints: IEndpoint[] = []
+    authService: AuthService
+
     /**
      * The express application.
      * @type {Application}
      */
-    public app: express.Application;
+    public app: express.Application
 
     /**
      * Bootstrap the application.
      * @static
      */
     public static bootstrap(): Server {
-        return new Server();
+        return new Server()
     }
 
-    /**
-     * @constructor
-     */
     constructor() {
-        //create expressjs application
-        this.app = express();
+        // Create expressjs application
+        this.app = express()
 
-        //configure application
-        this.config();
+        // Configure application
+        this.config()
 
-        //add api
-        this.api();
+        // Add endpoints
+        this.createEndpoints()
     }
 
-    /**
-     * Create REST API routes
-     *
-     * @class Server
-     */
-    public api() {
-        var router = express.Router();
-
-        // configure CORS
-        const corsOptions: cors.CorsOptions = {
-            allowedHeaders: ["Origin", "X-Requested-With", "Content-Type", "Accept", "X-Access-Token"],
-            credentials: true,
-            methods: "GET,HEAD,OPTIONS,PUT,PATCH,POST,DELETE",
-            origin: ["https://ca7o.herokuapp.com", "http://localhost:4200"],
-            preflightContinue: false
-        };
-        router.use(cors(corsOptions));
-
-        // root request
-        router.get("/", (req: express.Request, res: express.Response, next: express.NextFunction) => {
-            res.json({ announcement: "Welcome to our API." });
-            next();
-        });
-
-        // create API routes
-        UserApi.create(router);
-
-        // wire up the REST API
-        this.app.use("/api", router);
-
-        // enable CORS pre-flight
-        router.options("*", cors(corsOptions));
-    }
-
-    /**
-     * Configure application
-     *
-     * @class Server
-     */
     public config() {
         // morgan middleware to log HTTP requests
-        this.app.use(morgan("dev"));
+        this.app.use(morgan('dev'))
 
         //use json form parser middlware
-        this.app.use(bodyParser.json());
+        this.app.use(bodyParser.json())
 
         //use query string parser middlware
         this.app.use(bodyParser.urlencoded({
             extended: true
-        }));
+        }))
 
         // connect to mongoose
-        mongoose.connect("mongodb://cato:monzter1@ds115546.mlab.com:15546/ca7o", {
+        mongoose.connect(serverConfig.db, {
             useMongoClient: true
-        });
-        mongoose.connection.on("error", error => {
-            console.error(error);
-        });
+        })
+        mongoose.connection.on('error', error => {
+            console.error(error)
+        })
+
+        // Initializer auth service
+        this.authService = new AuthService(serverConfig.secret)
 
         //catch 404 and forward to error handler
         this.app.use(function (err: any, req: express.Request, res: express.Response, next: express.NextFunction) {
-            err.status = 404;
-            next(err);
-        });
+            err.status = 404
+            next(err)
+        })
 
         //error handling
-        this.app.use(errorHandler());
+        this.app.use(errorHandler())
+    }
+
+    public createEndpoints() {
+        var router = express.Router()
+
+        // Configure CORS
+        const corsOptions: cors.CorsOptions = {
+            allowedHeaders: ['Origin', 'X-Requested-With', 'Content-Type', 'Accept', 'X-Access-Token'],
+            credentials: true,
+            methods: 'GET,HEAD,OPTIONS,PUT,PATCH,POST,DELETE',
+            origin: ['https://ca7o.herokuapp.com', 'http://localhost:4200'],
+            preflightContinue: false
+        }
+        router.use(cors(corsOptions))
+
+        // TODO: what do I do with this ?
+        const userRepository = new BaseMongooseRepository<IUser>("User", userSchema)
+
+        // Create endpoints        
+        this.endpoints.push(new AuthEndpoint(
+            '/auth',
+            router,
+            userRepository,
+            this.authService))
+
+        this.endpoints.push(new UserEndpoint(
+            '/api/users',
+            router,
+            userRepository,
+            this.authService))
+
+        // Wire up routes
+        for (let endpoint of this.endpoints) {
+            endpoint.init();
+            this.app.use(
+                endpoint.path,
+                endpoint.router);
+
+            // Debug
+            console.log('Endpoint registered on: ', endpoint.path);
+        }
+
+        // Enable CORS pre-flight
+        router.options('*', cors(corsOptions))
     }
 }

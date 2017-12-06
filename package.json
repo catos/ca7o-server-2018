@@ -6,6 +6,7 @@
     "scripts": {
         "heroku-postbuild": "gulp",
         "build": "gulp",
+        "prestart": "gulp",
         "start": "node ./dist/start.js"
     },
     "keywords": [],
@@ -15,12 +16,14 @@
         "@types/body-parser": "1.16.8",
         "@types/cors": "2.8.3",
         "@types/errorhandler": "0.0.32",
+        "@types/jsonwebtoken": "^7.2.3",
         "@types/mongoose": "4.7.27",
         "@types/morgan": "1.7.35",
         "del": "3.0.0",
         "gulp": "3.9.1",
         "gulp-sourcemaps": "2.6.1",
         "gulp-typescript": "3.2.3",
+        "gulp-watch": "^4.3.11",
         "run-sequence": "2.2.0",
         "ts-node": "3.3.0",
         "typescript": "2.6.1"
@@ -30,6 +33,7 @@
         "cors": "2.8.4",
         "errorhandler": "1.5.0",
         "express": "4.16.2",
+        "jsonwebtoken": "^8.1.0",
         "mongoose": "4.13.4",
         "morgan": "1.9.0"
     }
