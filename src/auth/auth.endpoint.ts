@@ -4,6 +4,7 @@ import { IBaseRepository } from '../shared/base-repository.interface';
 import { IUser } from '../user/user.interface';
 import { IEndpoint } from '../shared/endpoint.interface';
 import { request } from 'http';
+import { ITokenResponse } from './token-response.model';
 
 export class AuthEndpoint implements IEndpoint {
 
@@ -27,20 +28,29 @@ export class AuthEndpoint implements IEndpoint {
             return next(new Error('username | password missing.'))
         }
 
+        let tokenResponse: ITokenResponse = {
+            token: '',
+            success: false,
+            message: ''
+        }
+
         this.userRepository
             .get({ username: username })
             .then(user => {
-
                 if (!user) {
-                    response.status(401);
-                    return response.json({ message: 'No user found with that username' });
+                    // response.status(401);
+                    tokenResponse.message = 'No user found with that username' 
+                    return response.json(tokenResponse);
                 } else {
                     let hashedPassword = this.authService.hashPassword(password, user.salt);
                     if (user.password !== hashedPassword) {
-                        response.status(401);
-                        return response.json({ message: 'Wrong password' });
+                        // response.status(401);
+                        tokenResponse.message = 'Wrong password'
+                        return response.json(tokenResponse)
                     } else {
-                        return response.json({ 'token': this.authService.createToken(user) });
+                        tokenResponse.token = this.authService.createToken(user)
+                        tokenResponse.success = true
+                        return response.json(tokenResponse);
                     }
                 }
             })
