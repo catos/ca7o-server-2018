@@ -30,9 +30,8 @@ export class AuthService {
     }
 
     getRequestUserId = (request: Request): number => {
-        const stringToken = request.headers['authorization'][0];
+        const stringToken = request.headers.authorization as string;
         const payload = jwt.decode(stringToken) as AuthPayload;
-
         if (payload.id) {
             return payload.id;
         }
