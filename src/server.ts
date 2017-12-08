@@ -89,7 +89,7 @@ export class Server {
 
         // Configure CORS
         const corsOptions: cors.CorsOptions = {
-            allowedHeaders: ['Origin', 'X-Requested-With', 'Content-Type', 'Accept', 'X-Access-Token'],
+            allowedHeaders: ['Origin', 'X-Requested-With', 'Content-Type', 'Accept', 'X-Access-Token', 'Authorization'],
             credentials: true,
             methods: 'GET,HEAD,OPTIONS,PUT,PATCH,POST,DELETE',
             origin: ['https://ca7o.herokuapp.com', 'http://localhost:4200'],
