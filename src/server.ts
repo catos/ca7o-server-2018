@@ -42,6 +42,7 @@ export class Server {
     constructor() {
         // Create expressjs application
         this.app = express()
+        this.app.use(cors())
 
         // Configure application
         this.config()
@@ -95,7 +96,7 @@ export class Server {
             credentials: true,
             methods: 'GET,HEAD,OPTIONS,PUT,PATCH,POST,DELETE',
             origin: ['https://ca7o.herokuapp.com', 'http://localhost:4200'],
-            preflightContinue: false
+            preflightContinue: false            
         }
         router.use(cors(corsOptions))
 
@@ -131,12 +132,13 @@ export class Server {
     }
 
     public start() {
-        // TODO: remove if unneccesary
-        // this.app.set("port", this.port);        
+        // TODO: delete start.js
         const server = http.createServer(this.app)
 
         // TODO: refactor
-        const socketIo = io();
+        const socketIo = io(server, {
+            origins: 'http://localhost:4200'
+        })
         socketIo.on('connection', (client) => {
             console.log('client connected')
 
