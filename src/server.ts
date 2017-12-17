@@ -1,8 +1,11 @@
 import * as bodyParser from 'body-parser'
+import * as http from 'http'
 import * as express from 'express'
 import * as morgan from 'morgan'
 import * as path from 'path'
 import * as cors from 'cors'
+import * as io from 'socket.io'
+
 import errorHandler = require('errorhandler')
 import mongoose = require('mongoose')
 
@@ -25,11 +28,7 @@ export class Server {
 
     endpoints: IEndpoint[] = []
     authService: AuthService
-
-    /**
-     * The express application.
-     * @type {Application}
-     */
+    port: number
     public app: express.Application
 
     /**
@@ -52,6 +51,9 @@ export class Server {
     }
 
     public config() {
+        // port
+        this.port = parseInt(process.env.port) || 8080        
+
         // morgan middleware to log HTTP requests
         this.app.use(morgan('dev'))
 
@@ -127,4 +129,30 @@ export class Server {
         // Enable CORS pre-flight
         router.options('*', cors(corsOptions))
     }
+
+    public start() {
+        // TODO: remove if unneccesary
+        // this.app.set("port", this.port);        
+        const server = http.createServer(this.app)
+
+        // TODO: refactor
+        const socketIo = io();
+        socketIo.on('connection', (client) => {
+            console.log('client connected')
+
+            client.on('event', (data) => {
+                console.log('event: ' + data)
+            })
+
+            client.on('disconnect', () => {
+                console.log('client disconnected')
+            })
+        })
+
+        server.listen(this.port)
+        console.log('Server started, listening on port: ' + this.port)
+    }
 }
+
+const server = new Server()
+server.start()
