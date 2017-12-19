@@ -4,7 +4,7 @@ import * as express from 'express'
 import * as morgan from 'morgan'
 import * as path from 'path'
 import * as cors from 'cors'
-import * as io from 'socket.io'
+import * as socketIo from 'socket.io'
 
 import errorHandler = require('errorhandler')
 import mongoose = require('mongoose')
@@ -53,7 +53,7 @@ export class Server {
 
     public config() {
         // port
-        this.port = parseInt(process.env.port) || 8080        
+        this.port = parseInt(process.env.port) || 8080
 
         // morgan middleware to log HTTP requests
         this.app.use(morgan('dev'))
@@ -96,7 +96,7 @@ export class Server {
             credentials: true,
             methods: 'GET,HEAD,OPTIONS,PUT,PATCH,POST,DELETE',
             origin: ['https://ca7o.herokuapp.com', 'http://localhost:4200'],
-            preflightContinue: false            
+            preflightContinue: false
         }
         router.use(cors(corsOptions))
 
@@ -136,14 +136,14 @@ export class Server {
         const server = http.createServer(this.app)
 
         // TODO: refactor
-        const socketIo = io(server, {
-            origins: 'http://localhost:4200'
-        })
-        socketIo.on('connection', (client) => {
+        const io = socketIo(server, { origins: 'http://localhost:4200' })
+        
+        io.on('connection', (client) => {
             console.log('client connected')
 
             client.on('event', (data) => {
                 console.log('event: ' + data)
+                io.emit('event', data)
             })
 
             client.on('disconnect', () => {
