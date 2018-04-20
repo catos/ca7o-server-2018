@@ -42,7 +42,6 @@ export class Server {
     constructor() {
         // Create expressjs application
         this.app = express()
-        this.app.use(cors())
 
         // Configure application
         this.config()
@@ -52,16 +51,16 @@ export class Server {
     }
 
     public config() {
-        // port
-        this.port = process.env.port || "8080"
+        // cors
+        this.app.use(cors())
 
         // morgan middleware to log HTTP requests
         this.app.use(morgan('dev'))
 
-        //use json form parser middlware
+        // use json form parser middlware
         this.app.use(bodyParser.json())
 
-        //use query string parser middlware
+        // use query string parser middlware
         this.app.use(bodyParser.urlencoded({
             extended: true
         }))
@@ -131,9 +130,9 @@ export class Server {
         router.options('*', cors(corsOptions))
     }
 
-    public start() {
+    // public start() {
         // TODO: delete start.js
-        const server = http.createServer(this.app)
+        // const server = http.createServer(this.app)
 
         // // TODO: refactor
         // const io = socketIo(server, { origins: 'http://localhost:4200' })
@@ -151,10 +150,10 @@ export class Server {
         //     })
         // })
 
-        server.listen(this.port)
-        console.log('Server started, listening on port: ' + this.port)
-    }
+        // server.listen(this.port)
+        // console.log('Server started, listening on port: ' + this.port)
+    // }
 }
 
-const server = new Server()
-server.start()
+// const server = new Server()
+// server.start()

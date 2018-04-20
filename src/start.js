@@ -2,24 +2,41 @@
 "use strict";
 
 // module dependencies
+var port = process.env.port || 8080
 var server = require("./server");
+var app = server.Server.bootstrap().app;
+
+// Debug
 var debug = require("debug")("express:server");
-var http = require("http");
 
 // create http server
-var httpPort = normalizePort(process.env.PORT || 8080);
-var app = server.Server.bootstrap().app;
-app.set("port", httpPort);
-var httpServer = http.createServer(app);
+var http = require("http").createServer(app);
+
+// Socket.io: 
+// TODO: refactor
+var io = require('socket.io')(http, { origins: 'http://localhost:4200' });
+
+io.on('connection', (client) => {
+    console.log('client connected')
+
+    client.on('event', (data) => {
+        // console.log('event: ' + data)
+        io.emit('event', data)
+    })
+
+    client.on('disconnect', () => {
+        console.log('client disconnected')
+    })
+})
 
 // listen on provided ports
-httpServer.listen(httpPort);
+http.listen(port);
 
 // add error handler
-httpServer.on("error", onError);
+http.on("error", onError);
 
 // start listening on port
-httpServer.on("listening", onListening);
+http.on("listening", onListening);
 
 
 /**
@@ -73,7 +90,7 @@ function onError(error) {
  * Event listener for HTTP server "listening" event.
  */
 function onListening() {
-    var addr = httpServer.address();
+    var addr = http.address();
     var bind = typeof addr === "string"
         ? "pipe " + addr
         : "port " + addr.port;
