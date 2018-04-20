@@ -4,9 +4,8 @@
     "description": "",
     "main": "src/start.js",
     "scripts": {
-        "heroku-postbuild": "gulp",
         "build": "gulp",
-        "prestart": "gulp",
+        "heroku-postbuild": "gulp",
         "start": "node ./dist/server.js"
     },
     "keywords": [],
@@ -39,5 +38,9 @@
         "morgan": "1.9.0",
         "npm": "^5.8.0",
         "socket.io": "2.0.4"
+    },
+    "engines": {
+        "node": "8.9.4",
+        "npm": "5.6.0"
     }
 }

@@ -28,7 +28,7 @@ export class Server {
 
     endpoints: IEndpoint[] = []
     authService: AuthService
-    port: number
+    port: string
     public app: express.Application
 
     /**
@@ -53,7 +53,7 @@ export class Server {
 
     public config() {
         // port
-        this.port = parseInt(process.env.port) || 8080
+        this.port = process.env.port || "8080"
 
         // morgan middleware to log HTTP requests
         this.app.use(morgan('dev'))
