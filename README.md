@@ -18,6 +18,7 @@
 - npm start // node ./dist/start.js
 
 ## TODO
+- Det er noe rart med start.js -> server.ts, hva som kalles, rekkefølgen....something...
 - NodeJS JWT Auth sample https://github.com/auth0-blog/nodejs-jwt-authentication-sample 
 - Mean App Server http://brianflove.com/2017/07/16/mean-app-server/
 

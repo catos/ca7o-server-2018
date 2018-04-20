@@ -6,7 +6,7 @@
     "scripts": {
         "build": "gulp",
         "heroku-postbuild": "gulp",
-        "start": "node ./dist/server.js"
+        "start": "node ./dist/start.js"
     },
     "keywords": [],
     "author": "",
