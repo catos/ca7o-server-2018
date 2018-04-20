@@ -135,21 +135,21 @@ export class Server {
         // TODO: delete start.js
         const server = http.createServer(this.app)
 
-        // TODO: refactor
-        const io = socketIo(server, { origins: 'http://localhost:4200' })
+        // // TODO: refactor
+        // const io = socketIo(server, { origins: 'http://localhost:4200' })
         
-        io.on('connection', (client) => {
-            console.log('client connected')
+        // io.on('connection', (client) => {
+        //     console.log('client connected')
 
-            client.on('event', (data) => {
-                console.log('event: ' + data)
-                io.emit('event', data)
-            })
+        //     client.on('event', (data) => {
+        //         console.log('event: ' + data)
+        //         io.emit('event', data)
+        //     })
 
-            client.on('disconnect', () => {
-                console.log('client disconnected')
-            })
-        })
+        //     client.on('disconnect', () => {
+        //         console.log('client disconnected')
+        //     })
+        // })
 
         server.listen(this.port)
         console.log('Server started, listening on port: ' + this.port)
