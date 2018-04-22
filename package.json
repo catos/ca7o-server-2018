@@ -4,10 +4,9 @@
     "description": "",
     "main": "src/start.js",
     "scripts": {
+        "start": "node dist/start.js",
         "build": "gulp",
-        "heroku-postbuild": "gulp",
-        "postinstall": "gulp",
-        "start": "node ./dist/start.js"
+        "postinstall": "npm run build"
     },
     "keywords": [],
     "author": "",
