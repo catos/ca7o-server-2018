@@ -2,9 +2,9 @@
     "name": "ca7o-server",
     "version": "1.0.0",
     "description": "",
-    "main": "src/start.js",
+    "main": "./dist/start.js",
     "scripts": {
-        "start": "node dist/start.js",
+        "start": "node ./dist/start.js",
         "build": "gulp",
         "postinstall": "npm run build"
     },
