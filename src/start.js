@@ -30,7 +30,9 @@ io.on('connection', (client) => {
 })
 
 // listen on provided ports
-http.listen(port);
+http.listen(port, function() {
+    console.log('App is running on port: ' + port);
+});
 
 // add error handler
 http.on("error", onError);
