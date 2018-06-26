@@ -5,6 +5,7 @@
 - The application is now deployed. Ensure that at least one instance of the app is running: `heroku ps:scale web=1`
 - Open the app in a browser: `heroku open`
 - Tail logs: `heroku logs --tail`
+- I removed "web: node ./dist/server.js" from Procfile
 
 ## Heroku
 - Add heroku remote as a remote in your current repository: `heroku git:remote -a ca7o-server`
