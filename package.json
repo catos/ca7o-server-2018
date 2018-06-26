@@ -4,6 +4,7 @@
     "description": "",
     "main": "./dist/start.js",
     "scripts": {
+        "prestart": "npm run build",
         "start": "node ./dist/start.js",
         "build": "gulp",
         "postinstall": "npm run build"

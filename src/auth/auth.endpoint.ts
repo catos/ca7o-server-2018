@@ -3,8 +3,7 @@ import { AuthService } from '../auth/auth.service';
 import { IBaseRepository } from '../shared/base-repository.interface';
 import { IUser } from '../user/user.interface';
 import { IEndpoint } from '../shared/endpoint.interface';
-import { request } from 'http';
-import { ITokenResponse } from './token-response.model';
+import { StatusCodes } from '../shared/status-codes';
 
 export class AuthEndpoint implements IEndpoint {
 
@@ -28,29 +27,21 @@ export class AuthEndpoint implements IEndpoint {
             return next(new Error('username | password missing.'))
         }
 
-        let tokenResponse: ITokenResponse = {
-            token: '',
-            success: false,
-            message: ''
-        }
-
         this.userRepository
             .get({ username: username })
             .then(user => {
                 if (!user) {
-                    // response.status(401);
-                    tokenResponse.message = 'No user found with that username' 
-                    return response.json(tokenResponse);
+                    response.status(StatusCodes.BadRequest);
+                    return response.json({errors: ['Invalid username or password']});
                 } else {
                     let hashedPassword = this.authService.hashPassword(password, user.salt);
                     if (user.password !== hashedPassword) {
-                        // response.status(401);
-                        tokenResponse.message = 'Wrong password'
-                        return response.json(tokenResponse)
+                        response.status(StatusCodes.BadRequest);
+                        return response.json({errors: ['Invalid username or password']});
                     } else {
-                        tokenResponse.token = this.authService.createToken(user)
-                        tokenResponse.success = true
-                        return response.json(tokenResponse);
+                        const token = this.authService.createToken(user)
+                        response.status(StatusCodes.Ok);
+                        return response.json(token);
                     }
                 }
             })
