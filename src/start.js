@@ -14,20 +14,20 @@ var http = require("http").createServer(app);
 
 // Socket.io: 
 // TODO: refactor
-// var io = require('socket.io')(http, { origins: 'http://localhost:4200' });
+var io = require('socket.io')(http, { origins: 'http://localhost:4200' });
 
-// io.on('connection', (client) => {
-//     console.log('client connected')
+io.on('connection', (client) => {
+    console.log('client connected')
 
-//     client.on('event', (data) => {
-//         // console.log('event: ' + data)
-//         io.emit('event', data)
-//     })
+    client.on('event', (data) => {
+        // console.log('event: ' + data)
+        io.emit('event', data)
+    })
 
-//     client.on('disconnect', () => {
-//         console.log('client disconnected')
-//     })
-// })
+    client.on('disconnect', () => {
+        console.log('client disconnected')
+    })
+})
 
 // listen on provided ports
 http.listen(port, function() {
