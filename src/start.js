@@ -14,7 +14,7 @@ var http = require("http").createServer(app);
 
 // Socket.io: 
 // TODO: refactor
-var io = require('socket.io')(http, { origins: 'http://localhost:4200' });
+var io = require('socket.io')(http, { origins: '*:*' });
 
 io.on('connection', (client) => {
     console.log('client connected')
