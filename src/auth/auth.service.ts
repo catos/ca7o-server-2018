@@ -51,7 +51,7 @@ export class AuthService {
 
     createToken = (user: IUser): string => {
         const payload = {
-            'id': user._id,
+            'guid': user.guid,
             'name': user.name,
             'username': user.username
         };

@@ -13,14 +13,14 @@ var debug = require("debug")("express:server");
 var http = require("http").createServer(app);
 
 // Socket.io: 
-// TODO: refactor
+// TODO: refactor, move to server.ts ?
 var io = require('socket.io')(http, { origins: '*:*' });
 
 io.on('connection', (client) => {
     console.log('client connected')
 
     client.on('event', (data) => {
-        // console.log('event: ' + data)
+        console.log('event: ', data)
         io.emit('event', data)
     })
 

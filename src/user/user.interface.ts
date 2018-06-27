@@ -6,7 +6,7 @@ export enum UserTypes {
     Admin = 2
 }
 export interface IUser extends IEndpointModel {
-    _id: string;
+    guid: string;
     name: string;
     type: UserTypes;
     username: string;

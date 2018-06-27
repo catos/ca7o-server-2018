@@ -4,6 +4,7 @@ import { IUser } from "./user.interface";
 import { Schema } from "mongoose";
 
 export var userSchema: Schema = new Schema({
+    guid: { type: String, required: true },
     name: { type: String, required: true },
     type: { type: Number, required: true },
     username: { type: String, required: true },
@@ -16,11 +17,11 @@ export var userSchema: Schema = new Schema({
     modifiedBy: { type: String, default: null }
 });
 
-export interface UserModel extends IUser, Document { }
+interface IUserModel extends IUser, Document { }
 
-export interface UserModelStatic extends Model<UserModel> { }
+export interface IUserModelStatic extends Model<IUserModel> { }
 
-export const User = mongoose.model<UserModel, UserModelStatic>("User", userSchema);
+export const User = mongoose.model<IUserModel, IUserModelStatic>("User", userSchema);
 
 /**
  * Seed (manuell atm)

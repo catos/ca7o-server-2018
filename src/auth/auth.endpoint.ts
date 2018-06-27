@@ -56,6 +56,14 @@ export class AuthEndpoint implements IEndpoint {
         // this._mailService.sendMail('to', 'subject', 'body');
     }
 
+    // TODO: move to "shared lib" ?
+    uuidv4() {
+        return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+            var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+            return v.toString(16);
+        });
+    }
+
     register = (request: Request, response: Response, next: NextFunction): void => {
         let newUser = <IUser>request.body;
 
@@ -67,6 +75,7 @@ export class AuthEndpoint implements IEndpoint {
                     response.status(StatusCodes.BadRequest);
                     return response.json({ errors: ['User with username: ' + newUser.username + ' already exist'] });
                 } else {
+                    newUser.guid = this.uuidv4();
                     newUser.type = UserTypes.Regular;
 
                     let password = newUser.password;
