@@ -1,7 +1,7 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { AuthService } from '../auth/auth.service';
 import { IBaseRepository } from '../shared/base-repository.interface';
-import { IUser } from '../user/user.interface';
+import { IUser, UserTypes } from '../user/user.interface';
 import { IEndpoint } from '../shared/endpoint.interface';
 import { StatusCodes } from '../shared/status-codes';
 
@@ -16,6 +16,8 @@ export class AuthEndpoint implements IEndpoint {
 
     init = () => {
         this.router.post('/login', this.login);
+        this.router.post('/register', this.register);
+        this.router.post('/forgot-password', this.forgotPassword);
     }
 
     login = (request: Request, response: Response, next: NextFunction) => {
@@ -24,7 +26,8 @@ export class AuthEndpoint implements IEndpoint {
         let password = request.body.password;
 
         if (!username || !password) {
-            return next(new Error('username | password missing.'))
+            response.status(StatusCodes.BadRequest);
+            return response.json({ errors: ['Invalid username or password'] });
         }
 
         this.userRepository
@@ -32,12 +35,12 @@ export class AuthEndpoint implements IEndpoint {
             .then(user => {
                 if (!user) {
                     response.status(StatusCodes.BadRequest);
-                    return response.json({errors: ['Invalid username or password']});
+                    return response.json({ errors: ['Invalid username or password'] });
                 } else {
                     let hashedPassword = this.authService.hashPassword(password, user.salt);
                     if (user.password !== hashedPassword) {
                         response.status(StatusCodes.BadRequest);
-                        return response.json({errors: ['Invalid username or password']});
+                        return response.json({ errors: ['Invalid username or password'] });
                     } else {
                         const token = this.authService.createToken(user)
                         response.status(StatusCodes.Ok);
@@ -45,6 +48,53 @@ export class AuthEndpoint implements IEndpoint {
                     }
                 }
             })
-            .catch((error) => console.error('AuthRouter.create/login:', error));
+            .catch(error => this.errorHandler(error, response));
     }
+
+    forgotPassword = (request: Request, response: Response, next: NextFunction) => {
+        console.log('send mail!');
+        // this._mailService.sendMail('to', 'subject', 'body');
+    }
+
+    register = (request: Request, response: Response, next: NextFunction): void => {
+        let newUser = <IUser>request.body;
+
+        this.userRepository
+            .find({ username: newUser.username })
+            .then((result) => {
+
+                if (result.length) {
+                    response.status(StatusCodes.BadRequest);
+                    return response.json({ errors: ['User with username: ' + newUser.username + ' already exist'] });
+                } else {
+                    newUser.type = UserTypes.Regular;
+
+                    let password = newUser.password;
+                    newUser.salt = this.authService.createSalt();
+                    newUser.password = this.authService.hashPassword(password, newUser.salt);
+
+                    let now = new Date();
+                    newUser.created = newUser.modified = now;
+
+                    this.userRepository
+                        .create(newUser)
+                        .then((user) => {
+                            const token = this.authService.createToken(user);
+                            response.status(StatusCodes.Ok);
+                            return response.json(token);
+                        })
+                        .catch(error => this.errorHandler(error, response));
+                }
+            })
+            .catch(error => this.errorHandler(error, response));
+    }
+
+    errorHandler = (error: Error, response: Response, message?: string): Response => {
+        return response
+            .status(StatusCodes.InternalServerError)
+            .json({
+                errors: [message || error.message]
+            });
+    }
+
 }

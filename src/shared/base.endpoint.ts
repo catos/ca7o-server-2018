@@ -1,9 +1,9 @@
-import { NextFunction, Request, RequestHandler, Response, Router } from 'express';
-import { join } from 'path';
+import { NextFunction, Request, Response, Router } from 'express';
 
 import { IEndpointModel } from './endpoint-model.interface';
 import { IBaseRepository } from './base-repository.interface';
 import { AuthService } from '../auth/auth.service';
+import { StatusCodes } from './status-codes';
 
 export abstract class BaseEndpoint<T extends IEndpointModel> {
 
@@ -23,10 +23,9 @@ export abstract class BaseEndpoint<T extends IEndpointModel> {
 
     errorHandler = (error: Error, response: Response, message?: string): Response => {
         return response
-            .status(500)
+            .status(StatusCodes.InternalServerError)
             .json({
-                message: message || error.message,
-                error: error
+                errors: [message || error.message]
             });
     }
 

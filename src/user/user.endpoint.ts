@@ -19,45 +19,7 @@ export class UserEndpoint extends BaseEndpoint<IUser> implements IEndpoint {
     }
 
     init = (): void => {
-        this.router.post('/register', this.register);
-        this.router.post('/forgot-password', this.forgotPassword);
-    }
-
-    forgotPassword = (request: Request, response: Response, next: NextFunction) => {
-        console.log('send mail!');
-        // this._mailService.sendMail('to', 'subject', 'body');
-    }
-
-    register = (request: Request, response: Response, next: NextFunction): void => {
-        let newUser = <IUser>request.body;
-
-        this.repository
-            .find({ username: newUser.username })
-            .then((result) => {
-
-                if (result.length) {
-                    return response.json({
-                        'message': 'User with username: ' + newUser.username + ' already exist'
-                    });
-                } else {
-                    let password = newUser.password;
-                    newUser.salt = this.authService.createSalt();
-                    newUser.password = this.authService.hashPassword(password, newUser.salt);
-
-                    let now = new Date();
-                    newUser.created = newUser.modified = now;
-
-                    this.repository
-                        .create(newUser)
-                        .then((user) => {
-                            return response.json({ 'jwt': this.authService.createToken(user) });
-                        })
-                        .catch(error => this.errorHandler(error, response));
-                }
-            })
-            .catch((error) => {
-                console.log('error', error);
-            });
+        this.router.post('/find', this.find);
     }
 
     // TODO: find out what this is used for
