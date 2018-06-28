@@ -24,9 +24,14 @@ enum PhaseTypes {
     GameEnd
 }
 
+interface IPlayer {
+    clientId: string;
+    name: string;
+}
+
 interface WesketchState {
     phase: PhaseTypes,
-    players: string[],
+    players: IPlayer[],
     // round: number;
     // currentWord: string;    
 }
@@ -41,16 +46,34 @@ export class WesketchServer {
         };
 
         io.on('connection', (client: SocketIO.Socket) => {
-            console.log('WesketchServer client connected')
-    
+            console.log('### client connected')
+
             client.on('event', (event: IWesketchEvent) => {
-                console.log(`client: ${event.client}, timestamp: ${event.timestamp}, type: ${event.type}`)
+                console.log(`### client: ${client}, timestamp: ${event.timestamp}, type: ${WesketchEventType[event.type]}`, event.value)
+                if (event.type === WesketchEventType.PlayerJoined) {
+                    this.addPlayer({
+                        clientId: client.id,
+                        name: event.value.player
+                    });
+                }
                 io.emit('event', event)
             })
-    
+
             client.on('disconnect', () => {
-                console.log('WesketchServer client disconnected')
+                console.log('### client disconnected')
             })
         });
+    }
+
+    addPlayer(player: IPlayer) {
+        const existingPlayer = this.state.players
+            .find(p => p.name === player.name);
+        console.log('existingPlayer', existingPlayer);
+
+        if (existingPlayer === undefined) {
+            this.state.players.push(player);
+        }
+
+        console.log(this.state);
     }
 }
