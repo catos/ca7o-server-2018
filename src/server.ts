@@ -18,6 +18,7 @@ import { userSchema } from './user/user.model';
 import { AuthEndpoint } from './auth/auth.endpoint';
 import { BaseEndpoint } from './shared/base.endpoint';
 import { IEndpoint } from './shared/endpoint.interface';
+import { WesketchServer } from './wesketch/wesketch-server';
 
 /**
  * The server.
@@ -28,7 +29,7 @@ export class Server {
 
     endpoints: IEndpoint[] = []
     authService: AuthService
-    port: string
+    wesketchServer: WesketchServer;
     public app: express.Application
 
     /**
@@ -130,30 +131,35 @@ export class Server {
         router.options('*', cors(corsOptions))
     }
 
-    // public start() {
-        // TODO: delete start.js
-        // const server = http.createServer(this.app)
+    public start() {
+        const port = process.env.PORT || 8080;
 
-        // // TODO: refactor
-        // const io = socketIo(server, { origins: 'http://localhost:4200' })
-        
-        // io.on('connection', (client) => {
-        //     console.log('client connected')
+        // create http server
+        const httpServer = http.createServer(this.app)
 
-        //     client.on('event', (data) => {
-        //         console.log('event: ' + data)
-        //         io.emit('event', data)
-        //     })
+        // socket.io
+        const io = socketIo(httpServer, { origins: '*:*' })
 
-        //     client.on('disconnect', () => {
-        //         console.log('client disconnected')
-        //     })
-        // })
+        // Create Wesketch server
+        this.wesketchServer = new WesketchServer(io);
 
-        // server.listen(this.port)
-        // console.log('Server started, listening on port: ' + this.port)
-    // }
+        // listen on provided ports
+        httpServer.listen(port, function () {
+            console.log('App is running on port: ' + port);
+        });
+
+        // add error handler
+        httpServer.on("error", (error: Error) => {
+            console.log('error: ', error)
+        });
+
+        // start listening on port
+        httpServer.on("listening", (event: string) => {
+            console.log(event);
+        });
+    }
+
 }
 
-// const server = new Server()
-// server.start()
+const server = new Server()
+server.start()

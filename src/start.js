@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 "use strict";
 
+// TODO: delete start.js
+
 // module dependencies
 var port = process.env.PORT || 8080
 var server = require("./server");
@@ -30,7 +32,7 @@ io.on('connection', (client) => {
 })
 
 // listen on provided ports
-http.listen(port, function() {
+http.listen(port, function () {
     console.log('App is running on port: ' + port);
 });
 
