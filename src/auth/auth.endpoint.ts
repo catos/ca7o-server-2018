@@ -75,6 +75,12 @@ export class AuthEndpoint implements IEndpoint {
                     response.status(StatusCodes.BadRequest);
                     return response.json({ errors: ['User with username: ' + newUser.username + ' already exist'] });
                 } else {
+
+                    if (newUser.name.length > 16) {
+                        response.status(StatusCodes.BadRequest);
+                        return response.json({ errors: ['Invalid username, max 16 characters allowed'] });
+                    }
+
                     newUser.guid = this.uuidv4();
                     newUser.type = UserTypes.Regular;
 

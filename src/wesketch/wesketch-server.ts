@@ -157,7 +157,7 @@ class PlayerReady implements IEventHandler {
             }
         });
 
-        if (server.state.players.every(p => p.isReady)) {
+        if (server.state.players.every(p => p.isReady) && server.state.players.length > 1) {
             server.sendServerEvent(WesketchEventType.SystemMessage, { sender: 'system', message: 'All players are ready, starting game!' });
             // TODO: start game
         }
