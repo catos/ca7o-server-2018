@@ -32,29 +32,31 @@ interface IPlayer {
     name: string;
 }
 
-interface IWesketchState {
+interface IWesketchGameState {
     phase: PhaseTypes,
     players: IPlayer[],
-    // round: number;
-    // currentWord: string;    
+    round: number;
+    currentWord: string;    
 }
 
 export class WesketchServer {
     private _io: SocketIO.Server;
-    public state: IWesketchState;
+    public state: IWesketchGameState;
 
     constructor(io: SocketIO.Server) {
         this._io = io;
 
         this.state = {
             phase: PhaseTypes.Lobby,
-            players: []
+            players: [],
+            round: 1,
+            currentWord: ''
         };
     }
 
     start() {
         this._io.on('connection', (client: SocketIO.Socket) => {
-            console.log('### client connected')
+            // console.log('### Client Connected')
 
             client.on('event', (event: IWesketchEvent) => {
                 // console.log(`### client: ${event.client}, timestamp: ${event.timestamp}, type: ${WesketchEventType[event.type]}`, event.value)
@@ -62,7 +64,7 @@ export class WesketchServer {
             })
 
             client.on('disconnect', () => {
-                console.log('### client disconnected')
+                // console.log('### Client Disconnected')
             })
         });
     }
@@ -117,8 +119,6 @@ interface IEventHandler {
 
 class PlayerJoined implements IEventHandler {
     handleEvent = (event: IWesketchEvent, server: WesketchServer) => {
-        console.log(event);
-        
         const player = {
             clientId: event.client,
             userId: event.userId,
@@ -126,23 +126,23 @@ class PlayerJoined implements IEventHandler {
         };
 
         const existingPlayer = server.state.players
-            .find((p: IPlayer) => p.name === player.name);
+            .find((p: IPlayer) => p.userId === player.userId);
 
         if (existingPlayer === undefined) {
             server.state.players.push(player);
         }
 
         server.updateGameState();
-        console.log('### PlayerJoined-handler', server.state);
+        console.log('### PlayerJoined-handler, userId: ' + event.userId);
     }
 }
 
 class PlayerLeft implements IEventHandler {
     handleEvent = (event: IWesketchEvent, server: WesketchServer) => {
-        server.state.players = server.state.players.filter(p => p.userId == event.userId)
+        server.state.players = server.state.players.filter(p => p.userId !== event.userId)
 
         server.updateGameState();
-        console.log('### PlayerLeft-handler', server.state);
+        console.log('### PlayerLeft-handler, userId: ' + event.userId);
     }
 }
 
