@@ -156,7 +156,7 @@ export class Server {
 
         // start listening on port
         httpServer.on("listening", (event: string) => {
-            console.log(event);
+            // console.log(event);
         });
     }
 

@@ -2,6 +2,7 @@ enum WesketchEventType {
     ServerError,
     PlayerJoined,
     PlayerLeft,
+    PlayerReady,
     Message,
     SystemMessage,
     StartDraw,
@@ -30,13 +31,14 @@ interface IPlayer {
     clientId: string;
     userId: string;
     name: string;
+    isReady: boolean;
 }
 
 interface IWesketchGameState {
     phase: PhaseTypes,
     players: IPlayer[],
     round: number;
-    currentWord: string;    
+    currentWord: string;
 }
 
 export class WesketchServer {
@@ -69,19 +71,16 @@ export class WesketchServer {
         });
     }
 
-    sendEvent(event: IWesketchEvent) {
-        this._io.emit('event', event)
-    }
-
-    updateGameState() {
+    sendServerEvent(type: WesketchEventType, value: any) {
         const event = {
-            client: '',
-            userId: '',
+            client: 'system',
+            userId: 'system',
             timestamp: new Date(),
-            type: WesketchEventType.UpdateGameState,
-            value: this.state
+            type,
+            value
         };
-        this.sendEvent(event);
+
+        this._io.emit('event', event)
     }
 
     handleEvent(event: IWesketchEvent) {
@@ -89,28 +88,29 @@ export class WesketchServer {
             case WesketchEventType.PlayerJoined:
                 new PlayerJoined().handleEvent(event, this);
                 break;
-                case WesketchEventType.PlayerLeft:
+            case WesketchEventType.PlayerLeft:
                 new PlayerLeft().handleEvent(event, this);
+                break;
+            case WesketchEventType.PlayerReady:
+                new PlayerReady().handleEvent(event, this);
                 break;
             case WesketchEventType.Message:
                 new Message().handleEvent(event, this);
                 break;
+            case WesketchEventType.Draw:
+                new Draw().handleEvent(event, this);
+                break;
+            case WesketchEventType.ClearCanvas:
+                new ClearCanvas().handleEvent(event, this);
+                break;
             default:
-                var errorEvent: IWesketchEvent = {
-                    client: '',
-                    userId: '',
-                    timestamp: new Date(),
-                    type: WesketchEventType.ServerError,
-                    value: {
-                        message: 'No eventhandler found for event',
-                        event
-                    }
-                };
-                this.sendEvent(errorEvent);
+                this.sendServerEvent(WesketchEventType.ServerError, {
+                    message: 'No eventhandler found for event',
+                    event
+                });
                 break;
         }
     }
-
 }
 
 interface IEventHandler {
@@ -122,7 +122,8 @@ class PlayerJoined implements IEventHandler {
         const player = {
             clientId: event.client,
             userId: event.userId,
-            name: event.value.player
+            name: event.value.player,
+            isReady: false
         };
 
         const existingPlayer = server.state.players
@@ -132,7 +133,8 @@ class PlayerJoined implements IEventHandler {
             server.state.players.push(player);
         }
 
-        server.updateGameState();
+        server.sendServerEvent(WesketchEventType.SystemMessage, { sender: 'system', message: `${player.name} joined the game` });
+        server.sendServerEvent(WesketchEventType.UpdateGameState, server.state);
         console.log('### PlayerJoined-handler, userId: ' + event.userId);
     }
 }
@@ -141,13 +143,47 @@ class PlayerLeft implements IEventHandler {
     handleEvent = (event: IWesketchEvent, server: WesketchServer) => {
         server.state.players = server.state.players.filter(p => p.userId !== event.userId)
 
-        server.updateGameState();
+        server.sendServerEvent(WesketchEventType.SystemMessage, { sender: 'system', message: `Player left the game` });
+        server.sendServerEvent(WesketchEventType.UpdateGameState, server.state);
         console.log('### PlayerLeft-handler, userId: ' + event.userId);
+    }
+}
+
+class PlayerReady implements IEventHandler {
+    handleEvent = (event: IWesketchEvent, server: WesketchServer) => {
+        server.state.players.forEach(p => {
+            if (p.userId === event.userId) {
+                p.isReady = !p.isReady;
+            }
+        });
+
+        if (server.state.players.every(p => p.isReady)) {
+            server.sendServerEvent(WesketchEventType.SystemMessage, { sender: 'system', message: 'All players are ready, starting game!' });
+            // TODO: start game
+        }
+
+        server.sendServerEvent(WesketchEventType.UpdateGameState, server.state);
+        console.log('### PlayerReady-handler, userId: ' + event.userId);
     }
 }
 
 class Message implements IEventHandler {
     handleEvent = (event: IWesketchEvent, server: WesketchServer) => {
-        server.sendEvent(event);
+        server.sendServerEvent(event.type, event.value);
+        console.log('### Message-handler, userId: ' + event.userId);
+    }
+}
+
+class Draw implements IEventHandler {
+    handleEvent = (event: IWesketchEvent, server: WesketchServer) => {
+        server.sendServerEvent(event.type, event.value);
+        // console.log('### Draw-handler, userId: ' + event.userId);
+    }
+}
+
+class ClearCanvas implements IEventHandler {
+    handleEvent = (event: IWesketchEvent, server: WesketchServer) => {
+        server.sendServerEvent(event.type, event.value);
+        console.log('### ClearCanvas-handler, userId: ' + event.userId);
     }
 }
