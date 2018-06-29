@@ -142,7 +142,7 @@ export class Server {
 
         // Create Wesketch server
         this.wesketchServer = new WesketchServer(io);
-        this.wesketchServer.start();
+        this.wesketchServer.init();
 
         // listen on provided ports
         httpServer.listen(port, function () {

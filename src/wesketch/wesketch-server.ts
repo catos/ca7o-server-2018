@@ -56,7 +56,7 @@ export class WesketchServer {
         };
     }
 
-    start() {
+    init() {
         this._io.on('connection', (client: SocketIO.Socket) => {
             // console.log('### Client Connected')
 
@@ -69,6 +69,15 @@ export class WesketchServer {
                 // console.log('### Client Disconnected')
             })
         });
+    }
+
+    start() {
+        this.sendServerEvent(WesketchEventType.SystemMessage, { sender: 'system', message: `Game started!` });
+
+        if (this.state.phase === PhaseTypes.Lobby) {
+            this.state.phase = PhaseTypes.Drawing;
+            this.sendServerEvent(WesketchEventType.UpdateGameState, this.state);
+        }
     }
 
     sendServerEvent(type: WesketchEventType, value: any) {
@@ -159,7 +168,7 @@ class PlayerReady implements IEventHandler {
 
         if (server.state.players.every(p => p.isReady) && server.state.players.length > 1) {
             server.sendServerEvent(WesketchEventType.SystemMessage, { sender: 'system', message: 'All players are ready, starting game!' });
-            // TODO: start game
+            server.start();
         }
 
         server.sendServerEvent(WesketchEventType.UpdateGameState, server.state);
