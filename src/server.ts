@@ -5,6 +5,7 @@ import * as morgan from 'morgan'
 import * as path from 'path'
 import * as cors from 'cors'
 import * as socketIo from 'socket.io'
+import * as firebase from 'firebase-admin';
 
 import errorHandler = require('errorhandler')
 import mongoose = require('mongoose')
@@ -19,6 +20,8 @@ import { AuthEndpoint } from './auth/auth.endpoint';
 import { BaseEndpoint } from './shared/base.endpoint';
 import { IEndpoint } from './shared/endpoint.interface';
 import { WesketchServer } from './wesketch/wesketch-server';
+import { Firestore } from '@google-cloud/firestore';
+import { RecipesEndpoint } from './recipes/recipes.endpoint';
 
 /**
  * The server.
@@ -28,6 +31,7 @@ import { WesketchServer } from './wesketch/wesketch-server';
 export class Server {
 
     endpoints: IEndpoint[] = []
+    firestore: Firestore;
     authService: AuthService
     wesketchServer: WesketchServer;
     public app: express.Application
@@ -74,6 +78,20 @@ export class Server {
             console.error(error)
         })
 
+        // Connecto to Firebase
+        const firebaseConfig = {
+            apiKey: "AIzaSyB-iLXapTpXII83f-XdGb3C8sKSVJTyybE",
+            authDomain: "ca7o-5ef9d.firebaseapp.com",
+            databaseURL: "https://ca7o-5ef9d.firebaseio.com",
+            projectId: "ca7o-5ef9d",
+            storageBucket: "ca7o-5ef9d.appspot.com",
+            messagingSenderId: "1061015171096"
+        };
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
+        this.firestore = firebase.firestore();
+
         // Initializer auth service
         this.authService = new AuthService(serverConfig.secret)
 
@@ -116,23 +134,30 @@ export class Server {
             userRepository,
             this.authService))
 
+        console.log('pre', router);
+        this.endpoints.push(new RecipesEndpoint(
+            '/api/recipes',
+            router,
+            this.firestore,
+            this.authService))
+        console.log('post', router);
+
         // Wire up routes
         for (let endpoint of this.endpoints) {
             endpoint.init();
-            this.app.use(
-                endpoint.path,
-                endpoint.router);
+            // this.app.use(endpoint.path, endpoint.router);
 
             // Debug
             console.log('Endpoint registered on: ', endpoint.path);
         }
+        this.app.use(router);
 
         // Enable CORS pre-flight
         router.options('*', cors(corsOptions))
     }
 
     public start() {
-        const port = process.env.PORT || 8080;
+        const port = process.env.PORT || 5000;
 
         // create http server
         const httpServer = http.createServer(this.app)

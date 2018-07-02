@@ -1,4 +1,4 @@
-import { Router } from 'express';
+import { Request, Response, Router, NextFunction } from 'express';
 
 export interface IEndpoint {
     path: string;
