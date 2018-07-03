@@ -33,8 +33,8 @@ export class UserEndpoint implements IEndpoint {
     }
 
     init = (request: Request, response: Response, next: NextFunction): void => {
-        console.log('UserEndpoint.init()');
-        next(); 
+        console.log('UserEndpoint.init() 2');
+        next();
     }
 
     create = (request: Request, response: Response, next: NextFunction) => {

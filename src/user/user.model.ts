@@ -1,8 +1,6 @@
-import * as mongoose from 'mongoose';
-import { Document, Model } from "mongoose";
-import { Schema } from "mongoose";
+import mongoose from 'mongoose';
 
-export var userSchema = new Schema({
+export var userSchema = new mongoose.Schema({
     guid: { type: String, required: true },
     name: { type: String, required: true },
     type: { type: Number, required: true },
@@ -16,7 +14,7 @@ export enum UserTypes {
     Regular = 1,
     Admin = 2
 }
-export interface IUser extends Document {
+export interface IUser extends mongoose.Document {
     guid: string;
     name: string;
     type: UserTypes;
@@ -25,7 +23,7 @@ export interface IUser extends Document {
     salt: string;
 }
 
-export interface IUserModel extends Model<IUser> { }
+export interface IUserModel extends mongoose.Model<IUser> { }
 
 export const User = mongoose.model<IUser>("User", userSchema) as IUserModel;
 

@@ -1,9 +1,9 @@
-import * as bodyParser from 'body-parser'
-import * as http from 'http'
-import * as express from 'express'
-import * as morgan from 'morgan'
-import * as cors from 'cors'
-import * as socketIo from 'socket.io'
+import bodyParser from 'body-parser'
+import http from 'http'
+import express from 'express';
+import morgan from 'morgan';
+import cors from 'cors';
+import socketIo from 'socket.io';
 
 import errorHandler = require('errorhandler')
 import mongoose = require('mongoose')
@@ -20,7 +20,6 @@ import { WesketchServer } from './wesketch/wesketch-server';
 import { AuthEndpoint } from './auth/auth.endpoint';
 import { UserEndpoint } from './user/user.endpoint'
 import { RecipesEndpoint } from './recipes/recipes.endpoint';
-
 
 /**
  * The server.
@@ -115,7 +114,7 @@ export class Server {
         // DEBUG, list routes registerd
         router.stack.map(stack => {
             if (stack && stack.route) {
-                console.log(stack.route.path, stack.route.methods);
+                console.log(stack.route.methods, stack.route.path);
             }
         })
     }
