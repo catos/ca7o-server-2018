@@ -15,9 +15,9 @@ export class AuthEndpoint implements IEndpoint {
     ) { }
 
     init = () => {
-        this.router.post('/login', this.login);
-        this.router.post('/register', this.register);
-        this.router.post('/forgot-password', this.forgotPassword);
+        this.router.post('/auth/login', this.login);
+        this.router.post('/auth/register', this.register);
+        this.router.post('/auth/forgot-password', this.forgotPassword);
     }
 
     login = (request: Request, response: Response, next: NextFunction) => {

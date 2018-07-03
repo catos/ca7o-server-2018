@@ -56,6 +56,7 @@ export class RecipesEndpoint implements IEndpoint {
                         recipes.push(recipe as IRecipe);
                     });
                     response.json(recipes);
+                }
             )
             .catch(err => console.log(err));
     }

@@ -8,17 +8,18 @@ import { StatusCodes } from './status-codes';
 export abstract class BaseEndpoint<T extends IEndpointModel> {
 
     constructor(
+        path: string,
         public router: Router,
         protected repository: IBaseRepository<T>,
         protected authService: AuthService
     ) {
-        router.all('*', this.init);
-        router.get('/', this.authService.isAuthenticated, this.all);
-        router.get('/find', this.authService.isAuthenticated, this.find);
-        router.get('/:id', this.authService.isAuthenticated, this.get);
-        router.post('/', this.authService.isAuthenticated, this.create);
-        router.put('/:id', this.authService.isAuthenticated, this.update);
-        router.delete('/:id', this.authService.isAuthenticated, this.delete);
+        router.all(path + '*', this.init);
+        router.get(path + '/', this.authService.isAuthenticated, this.all);
+        router.get(path + '/find', this.authService.isAuthenticated, this.find);
+        router.get(path + '/:id', this.authService.isAuthenticated, this.get);
+        router.post(path + '/', this.authService.isAuthenticated, this.create);
+        router.put(path + '/:id', this.authService.isAuthenticated, this.update);
+        router.delete(path + '/:id', this.authService.isAuthenticated, this.delete);
     }
 
     errorHandler = (error: Error, response: Response, message?: string): Response => {

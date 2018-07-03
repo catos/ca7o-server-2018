@@ -15,7 +15,7 @@ export class UserEndpoint extends BaseEndpoint<IUser> implements IEndpoint {
         repository: IBaseRepository<IUser>,
         authService: AuthService
     ) {
-        super(router, repository, authService)
+        super(path, router, repository, authService)
     }
 
     init = (): void => {
