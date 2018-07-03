@@ -1,9 +1,9 @@
-import mongoose = require("mongoose");
+import * as mongoose from 'mongoose';
 import { Document, Model } from "mongoose";
-import { IUser } from "./user.interface";
+import { IEndpointModel } from '../shared/endpoint-model.interface';
 import { Schema } from "mongoose";
 
-export var userSchema: Schema = new Schema({
+export var userSchema = new Schema({
     guid: { type: String, required: true },
     name: { type: String, required: true },
     type: { type: Number, required: true },
@@ -17,11 +17,23 @@ export var userSchema: Schema = new Schema({
     modifiedBy: { type: String, default: null }
 });
 
-interface IUserModel extends IUser, Document { }
+export enum UserTypes {
+    NotDefined = 0,
+    Regular = 1,
+    Admin = 2
+}
+export interface IUser extends IEndpointModel, Document {
+    guid: string;
+    name: string;
+    type: UserTypes;
+    username: string;
+    password: string;
+    salt: string;
+}
 
-export interface IUserModelStatic extends Model<IUserModel> { }
+export interface IUserModel extends Model<IUser> { }
 
-export const User = mongoose.model<IUserModel, IUserModelStatic>("User", userSchema);
+export const User = mongoose.model<IUser>("User", userSchema) as IUserModel;
 
 /**
  * Seed (manuell atm)

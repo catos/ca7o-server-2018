@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import * as crypto from 'crypto';
 import * as jwt from 'jsonwebtoken'
 
-import { IUser } from '../user/user.interface';
+import { IUser } from '../user/user.model';
 import { AuthPayload } from './auth-payload.model';
 
 export class AuthService {

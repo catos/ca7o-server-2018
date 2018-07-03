@@ -1,6 +1,6 @@
 import { NextFunction, Response, Request, Router } from 'express';
-import { Firestore } from '@google-cloud/firestore';
 
+import { StatusCodes } from '../shared/status-codes';
 import { IEndpoint } from '../shared/endpoint.interface';
 import { AuthService } from "../auth/auth.service";
 
@@ -12,12 +12,10 @@ export class RecipesEndpoint implements IEndpoint {
     constructor(
         public path: string,
         public router: Router,
-        public firestore: Firestore,
         private authService: AuthService) {
 
-        this.router.all('/api/recipes/*', this.init);
-        this.router.get('/api/recipes-seed/', this.authService.isAuthenticated, this.seed);
-        this.router.get('/api/recipes/', this.authService.isAuthenticated, this.all);
+        router.all(path + '/*', this.init);
+        router.get(path + '/', this.authService.isAuthenticated, this.all);
         // router.get('/find', this.authService.isAuthenticated, this.find);
         // router.get('/:id', this.authService.isAuthenticated, this.get);
         // router.post('/', this.authService.isAuthenticated, this.create);
@@ -25,40 +23,21 @@ export class RecipesEndpoint implements IEndpoint {
         // router.delete('/:id', this.authService.isAuthenticated, this.delete);
     }
 
-    init = () => {
-        console.log('RecipesEndpoint init()');
+    errorHandler = (error: Error, response: Response, message?: string): Response => {
+        return response
+            .status(StatusCodes.InternalServerError)
+            .json({
+                errors: [message || error.message]
+            });
     }
 
-    seed = (request: Request, response: Response, next: NextFunction) => {
-        // console.log('seed');
-        // response.json({ ok: 'asdf' });
-        RECIPES.map(recipe => {
-            this.firestore.collection("recipes")
-                .add(recipe)
-                .then(ref => console.log('Recipe added with id: ' + ref.id))
-                .then(() => response.json('ok'));
-        });        
+    init = (request: Request, response: Response, next: NextFunction): void => {
+        console.log('UserEndpoint.init()');
+        next();
     }
 
     all = (request: Request, response: Response, next: NextFunction) => {
-        console.log('RecipesEndpoint all()');
-        this.firestore.collection("recipes").get()
-            .then(
-                (snapshot) => {
-                    let recipes: IRecipe[] = [];
-                    snapshot.forEach((doc) => {
-                        let recipe = {
-                            id: doc.id,
-                            ...doc.data()
-                        }
-                        console.log(recipe);
-
-                        recipes.push(recipe as IRecipe);
-                    });
-                    response.json(recipes);
-                }
-            )
-            .catch(err => console.log(err));
+        response.json(RECIPES);
     }
 
 }

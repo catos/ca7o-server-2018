@@ -1,23 +1,36 @@
 import { Router, Request, Response, NextFunction } from 'express';
-import { AuthService } from '../auth/auth.service';
-import { IBaseRepository } from '../shared/base-repository.interface';
-import { IUser, UserTypes } from '../user/user.interface';
-import { IEndpoint } from '../shared/endpoint.interface';
+
 import { StatusCodes } from '../shared/status-codes';
+import { IEndpoint } from '../shared/endpoint.interface';
+import { AuthService } from '../auth/auth.service';
+
+import { IBaseRepository } from '../shared/base-repository.interface';
+import { IUser, UserTypes } from '../user/user.model';
 
 export class AuthEndpoint implements IEndpoint {
-
     constructor(
         public path: string,
         public router: Router,
         private userRepository: IBaseRepository<IUser>,
         private authService: AuthService
-    ) { }
+    ) {
+        router.all(path + '*', this.init);
+        router.post(path + '/login', this.login);
+        router.post(path + '/register', this.register);
+        router.post(path + '/forgot-password', this.forgotPassword);
+    }
 
-    init = () => {
-        this.router.post('/auth/login', this.login);
-        this.router.post('/auth/register', this.register);
-        this.router.post('/auth/forgot-password', this.forgotPassword);
+    errorHandler = (error: Error, response: Response, message?: string): Response => {
+        return response
+            .status(StatusCodes.InternalServerError)
+            .json({
+                errors: [message || error.message]
+            });
+    }
+
+    init(request: Request, response: Response, next: NextFunction): void {
+        console.log('AuthEndpoint.init()');
+        next();
     }
 
     login = (request: Request, response: Response, next: NextFunction) => {
@@ -102,14 +115,6 @@ export class AuthEndpoint implements IEndpoint {
                 }
             })
             .catch(error => this.errorHandler(error, response));
-    }
-
-    errorHandler = (error: Error, response: Response, message?: string): Response => {
-        return response
-            .status(StatusCodes.InternalServerError)
-            .json({
-                errors: [message || error.message]
-            });
     }
 
 }

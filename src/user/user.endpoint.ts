@@ -1,46 +1,108 @@
 import { NextFunction, Response, Request, Router } from 'express';
 
-import { BaseEndpoint } from '../shared/base.endpoint';
+import { StatusCodes } from '../shared/status-codes';
+import { IEndpoint } from '../shared/endpoint.interface';
 import { AuthService } from '../auth/auth.service';
 import { IBaseRepository } from '../shared/base-repository.interface';
-import { IUser } from './user.interface';
-import { IEndpoint } from '../shared/endpoint.interface';
+import { IUser, User } from './user.model';
 
 
-export class UserEndpoint extends BaseEndpoint<IUser> implements IEndpoint {
+export class UserEndpoint implements IEndpoint {
 
     constructor(
         public path: string,
         public router: Router,
-        repository: IBaseRepository<IUser>,
-        authService: AuthService
+        public repository: IBaseRepository<IUser>,
+        public authService: AuthService
     ) {
-        super(path, router, repository, authService)
+        router.all(path + '*', this.init);
+        router.get(path + '/', this.authService.isAuthenticated, this.all);
+        router.get(path + '/find', this.authService.isAuthenticated, this.find);
+        router.get(path + '/:id', this.authService.isAuthenticated, this.get);
+        router.post(path + '/', this.authService.isAuthenticated, this.create);
+        router.put(path + '/:id', this.authService.isAuthenticated, this.update);
+        router.delete(path + '/:id', this.authService.isAuthenticated, this.delete);
     }
 
-    init = (): void => {
-        this.router.post('/find', this.find);
+    errorHandler = (error: Error, response: Response, message?: string): Response => {
+        return response
+            .status(StatusCodes.InternalServerError)
+            .json({
+                errors: [message || error.message]
+            });
     }
 
-    // TODO: find out what this is used for
-    // TODO: fix and move into BaseApiEndpoint maybe ?
-    // TODO: use this code maybe ?
-    // public list(req: Request, res: Response, next: NextFunction) {
-    //     // get users
-    //     let filters = {}
-    //     if (req.query.q !== undefined) {
-    //         filters = {
-    //             $or: [
-    //                 { "name": { "$regex": req.query.q, "$options": "i" } },
-    //                 { "username": { "$regex": req.query.q, "$options": "i" } }
-    //             ]
-    //         }
-    //     }
-    //     User.find(filters).then(users => {
-    //         res.json(users.map(user => user.toObject()));
-    //         next();
-    //     }).catch(next);
-    // }
+    init = (request: Request, response: Response, next: NextFunction): void => {
+        console.log('UserEndpoint.init()');
+        next();
+    }
+
+    create = (request: Request, response: Response, next: NextFunction) => {
+        let userId = this.authService.getRequestUserId(request);
+        let now = new Date();
+        let item = request.body as IUser;
+        item.created = item.modified = now;
+        item.createdBy = item.modifiedBy = userId;
+
+        this.repository
+            .create(item)
+            .then(result => {
+                response.json(result);
+            })
+            .catch(error => this.errorHandler(error, response));
+    }
+
+    update = (request: Request, response: Response, next: NextFunction) => {
+        let userId = this.authService.getRequestUserId(request);
+        let now = new Date();
+
+        let item = request.body as IUser;
+        item.modified = now;
+        item.modifiedBy = userId;
+
+        this.repository
+            .update(request.params.id, item)
+            .then((result) => {
+                response.json(result);
+            })
+            .catch(error => this.errorHandler(error, response));
+    }
+
+    delete = (request: Request, response: Response, next: NextFunction) => {
+        this.repository
+            .delete(request.params.id)
+            .then((result) => {
+                response.json(result);
+            })
+            .catch(error => this.errorHandler(error, response));
+    }
+
+    all = (request: Request, response: Response, next: NextFunction) => {
+        // this.repository
+        //     .all()
+        //     .then(result => {
+        //         response.json(result);
+        //     })
+        //     .catch(error => this.errorHandler(error, response));
+        !!!!
+        // TODO: reference: https://github.com/vladotesanovic/typescript-mongoose-express
+        // TODO: remove base-repository
+        // TODO: remove base-mongoose.repository
+        // TODO: implement endpoints like this!
+        const query = User.find({});
+        query.exec()
+            .then(result => response.json(result))
+            .catch(error => this.errorHandler(error, response));
+    }
+
+    get = (request: Request, response: Response, next: NextFunction) => {
+        this.repository
+            .getById(request.params.id)
+            .then((result) => {
+                response.json(result);
+            })
+            .catch(error => this.errorHandler(error, response));
+    }
 
     find = (request: Request, response: Response, next: NextFunction) => {
         var q = {

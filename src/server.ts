@@ -2,25 +2,23 @@ import * as bodyParser from 'body-parser'
 import * as http from 'http'
 import * as express from 'express'
 import * as morgan from 'morgan'
-import * as path from 'path'
 import * as cors from 'cors'
 import * as socketIo from 'socket.io'
-import * as firebase from 'firebase-admin';
 
 import errorHandler = require('errorhandler')
 import mongoose = require('mongoose')
 
+import { IUser } from './user/user.model';
+import { userSchema } from './user/user.model';
+
 import { serverConfig } from './server.config'
 import { BaseMongooseRepository } from './shared/base-mongoose.repository'
 import { AuthService } from './auth/auth.service'
-import { UserEndpoint } from './user/user.endpoint'
-import { IUser } from './user/user.interface';
-import { userSchema } from './user/user.model';
-import { AuthEndpoint } from './auth/auth.endpoint';
-import { BaseEndpoint } from './shared/base.endpoint';
-import { IEndpoint } from './shared/endpoint.interface';
+
 import { WesketchServer } from './wesketch/wesketch-server';
-import { Firestore } from '@google-cloud/firestore';
+
+import { AuthEndpoint } from './auth/auth.endpoint';
+import { UserEndpoint } from './user/user.endpoint'
 import { RecipesEndpoint } from './recipes/recipes.endpoint';
 
 /**
@@ -30,8 +28,6 @@ import { RecipesEndpoint } from './recipes/recipes.endpoint';
  */
 export class Server {
 
-    endpoints: IEndpoint[] = []
-    firestore: Firestore;
     authService: AuthService
     wesketchServer: WesketchServer;
     public app: express.Application
@@ -70,27 +66,10 @@ export class Server {
             extended: true
         }))
 
-        // connect to mongoose
-        mongoose.connect(serverConfig.db, {
-            useMongoClient: true
-        })
-        mongoose.connection.on('error', error => {
-            console.error(error)
-        })
-
-        // Connecto to Firebase
-        const firebaseConfig = {
-            apiKey: "AIzaSyB-iLXapTpXII83f-XdGb3C8sKSVJTyybE",
-            authDomain: "ca7o-5ef9d.firebaseapp.com",
-            databaseURL: "https://ca7o-5ef9d.firebaseio.com",
-            projectId: "ca7o-5ef9d",
-            storageBucket: "ca7o-5ef9d.appspot.com",
-            messagingSenderId: "1061015171096"
-        };
-        if (!firebase.apps.length) {
-            firebase.initializeApp(firebaseConfig);
-        }
-        this.firestore = firebase.firestore();
+        // Mongoose
+        mongoose.Promise = global.Promise;
+        mongoose.connect(serverConfig.db, { useMongoClient: true });
+        mongoose.connection.on('error', error => console.error(error));
 
         // Initializer auth service
         this.authService = new AuthService(serverConfig.secret)
@@ -122,38 +101,22 @@ export class Server {
         const userRepository = new BaseMongooseRepository<IUser>("User", userSchema)
 
         // Create endpoints        
-        this.endpoints.push(new AuthEndpoint(
-            '/auth',
-            router,
-            userRepository,
-            this.authService))
+        new AuthEndpoint('/auth', router, userRepository, this.authService);
+        new UserEndpoint('/api/users', router, userRepository, this.authService);
+        new RecipesEndpoint('/api/recipes', router, this.authService);
 
-        this.endpoints.push(new UserEndpoint(
-            '/api/users',
-            router,
-            userRepository,
-            this.authService))
-
-        console.log('pre', router);
-        this.endpoints.push(new RecipesEndpoint(
-            '/api/recipes',
-            router,
-            this.firestore,
-            this.authService))
-        console.log('post', router);
-
-        // Wire up routes
-        for (let endpoint of this.endpoints) {
-            endpoint.init();
-            // this.app.use(endpoint.path, endpoint.router);
-
-            // Debug
-            console.log('Endpoint registered on: ', endpoint.path);
-        }
+        // Router
         this.app.use(router);
 
         // Enable CORS pre-flight
         router.options('*', cors(corsOptions))
+
+        // DEBUG, list routes registerd
+        router.stack.map(stack => {
+            if (stack && stack.route) {
+                console.log(stack.route.path, stack.route.methods);
+            }
+        })
     }
 
     public start() {

@@ -4,5 +4,6 @@ export interface IEndpoint {
     path: string;
     router: Router;
 
-    init(): void;
+    errorHandler(error: Error, response: Response, message?: string): Response;
+    init(request: Request, response: Response, next: NextFunction): void;
 }

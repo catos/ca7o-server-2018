@@ -4,17 +4,17 @@ import { IBaseRepository } from './base-repository.interface';
 
 export class BaseMongooseRepository<T extends mongoose.Document> implements IBaseRepository<T> {
 
-    private _model: mongoose.Model<T>;
+    private model: mongoose.Model<T>;
 
     constructor(name: string, schema: mongoose.Schema) {
-        this._model = mongoose.model<T>(name, schema)
+        this.model = mongoose.model<T>(name, schema)
     }
 
     create(item: T) {
         let self = this;
 
         let p = new Promise<T>((resolve, reject) => {
-            self._model.create(item, (error: Error, result: T) => {
+            self.model.create(item, (error: Error, result: T) => {
 
                 if (error) {
                     console.error('BaseMongooseRepository.create:', error);
@@ -32,7 +32,7 @@ export class BaseMongooseRepository<T extends mongoose.Document> implements IBas
     update(_id: string, item: T) {
         let self = this;
         let p = new Promise<T>((resolve, reject) => {
-            self._model.findByIdAndUpdate(_id, item, { new: true }, (error, result) => {
+            self.model.findByIdAndUpdate(_id, item, { new: true }, (error, result) => {
                 if (error) {
                     console.error('BaseMongooseRepository.update:', error);
                     reject(error);
@@ -49,7 +49,7 @@ export class BaseMongooseRepository<T extends mongoose.Document> implements IBas
     delete(_id: string) {
         let self = this;
         let p = new Promise<boolean>((resolve, reject) => {
-            self._model.remove({ _id: this.toObjectId(_id) }, (error) => {
+            self.model.remove({ _id: this.toObjectId(_id) }, (error) => {
                 if (error) {
                     console.error('BaseMongooseRepository.delete:', error);
                     reject(error);
@@ -66,7 +66,7 @@ export class BaseMongooseRepository<T extends mongoose.Document> implements IBas
     all(): Promise<T[]> {
         let self = this;
         let p = new Promise<T[]>((resolve, reject) => {
-            self._model.find({}, (error, result) => {
+            self.model.find({}, (error, result) => {
 
                 if (error) {
                     console.error('BaseMongooseRepository.all:', error);
@@ -88,7 +88,7 @@ export class BaseMongooseRepository<T extends mongoose.Document> implements IBas
         };
         let p = new Promise<T>((resolve, reject) => {
 
-            self._model.findById(_id, (error, result) => {
+            self.model.findById(_id, (error, result) => {
 
                 if (error) {
                     console.error('BaseMongooseRepository.getById:', error);
@@ -106,7 +106,7 @@ export class BaseMongooseRepository<T extends mongoose.Document> implements IBas
     get(conditions: Object) {
         let self = this;
         let p = new Promise<T>((resolve, reject) => {
-            self._model.findOne(conditions).exec((error, res) => {
+            self.model.findOne(conditions).exec((error, res) => {
                 if (error) {
                     console.error('BaseMongooseRepository.get:', error);
                     reject(error);
@@ -122,7 +122,7 @@ export class BaseMongooseRepository<T extends mongoose.Document> implements IBas
 
     find(conditions: Object, sortOptions?: any): Promise<T[]> {
         let p = new Promise<T[]>((resolve, reject) => {
-            let query = this._model.find(conditions);
+            let query = this.model.find(conditions);
             if (sortOptions) {
                 query = query.sort(sortOptions);
             }
