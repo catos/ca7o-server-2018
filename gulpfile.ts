@@ -2,8 +2,10 @@ const gulp = require('gulp')
 const del = require('del')
 const runSequence = require('run-sequence')
 const sourceMaps = require('gulp-sourcemaps')
-const tsc = require('gulp-typescript')
+const ts = require('gulp-typescript')
 const watch = require('gulp-watch')
+
+const project = ts.createProject('src/tsconfig.json');
 
 /**
 * Remove dist directory.
@@ -13,22 +15,13 @@ gulp.task('clean', (done) => {
 });
 
 /**
-* Copy start script.
-*/
-gulp.task('copy', () => {
-    return gulp.src('src/start.js')
-        .pipe(gulp.dest('dist'));
-});
-
-/**
 * Build the server.
 */
-gulp.task('build:express', () => {
-    const project = tsc.createProject('src/tsconfig.json');
-    const result = gulp.src('src/**/*.ts')
+gulp.task('build', () => {
+    return gulp.src('src/**/*.ts')
         .pipe(sourceMaps.init())
-        .pipe(project());
-    return result.js
+        .pipe(project())
+    // return result.js
         .pipe(sourceMaps.write())
         .pipe(gulp.dest('dist'));
 });
@@ -36,10 +29,11 @@ gulp.task('build:express', () => {
 /**
 * Build the project.
 */
-gulp.task('default', (done) => {
-    runSequence('clean', 'copy', 'build:express');
+gulp.task('default', () => {
+    // runSequence('clean', 'copy', 'build');
+    runSequence('clean', 'build');
 });
 
-gulp.task('watcher', (done) => {
+gulp.task('watch', ['default'], () => {
     gulp.watch('src/**/*.ts', ['default']);
 })

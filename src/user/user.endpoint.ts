@@ -34,16 +34,11 @@ export class UserEndpoint implements IEndpoint {
 
     init = (request: Request, response: Response, next: NextFunction): void => {
         console.log('UserEndpoint.init()');
-        next();
+        next(); 
     }
 
     create = (request: Request, response: Response, next: NextFunction) => {
-        let userId = this.authService.getRequestUserId(request);
-        let now = new Date();
         let item = request.body as IUser;
-        item.created = item.modified = now;
-        item.createdBy = item.modifiedBy = userId;
-
         this.repository
             .create(item)
             .then(result => {
@@ -53,13 +48,7 @@ export class UserEndpoint implements IEndpoint {
     }
 
     update = (request: Request, response: Response, next: NextFunction) => {
-        let userId = this.authService.getRequestUserId(request);
-        let now = new Date();
-
         let item = request.body as IUser;
-        item.modified = now;
-        item.modifiedBy = userId;
-
         this.repository
             .update(request.params.id, item)
             .then((result) => {
@@ -84,7 +73,7 @@ export class UserEndpoint implements IEndpoint {
         //         response.json(result);
         //     })
         //     .catch(error => this.errorHandler(error, response));
-        !!!!
+
         // TODO: reference: https://github.com/vladotesanovic/typescript-mongoose-express
         // TODO: remove base-repository
         // TODO: remove base-mongoose.repository

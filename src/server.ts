@@ -21,6 +21,7 @@ import { AuthEndpoint } from './auth/auth.endpoint';
 import { UserEndpoint } from './user/user.endpoint'
 import { RecipesEndpoint } from './recipes/recipes.endpoint';
 
+
 /**
  * The server.
  *

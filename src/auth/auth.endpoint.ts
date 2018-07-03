@@ -101,9 +101,6 @@ export class AuthEndpoint implements IEndpoint {
                     newUser.salt = this.authService.createSalt();
                     newUser.password = this.authService.hashPassword(password, newUser.salt);
 
-                    let now = new Date();
-                    newUser.created = newUser.modified = now;
-
                     this.userRepository
                         .create(newUser)
                         .then((user) => {

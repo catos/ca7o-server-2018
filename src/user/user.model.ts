@@ -1,6 +1,5 @@
 import * as mongoose from 'mongoose';
 import { Document, Model } from "mongoose";
-import { IEndpointModel } from '../shared/endpoint-model.interface';
 import { Schema } from "mongoose";
 
 export var userSchema = new Schema({
@@ -10,11 +9,6 @@ export var userSchema = new Schema({
     username: { type: String, required: true },
     password: { type: String, required: true },
     salt: { type: String, required: true },
-
-    created: { type: Date, required: true },
-    createdBy: { type: String, default: null },
-    modified: { type: Date, required: true },
-    modifiedBy: { type: String, default: null }
 });
 
 export enum UserTypes {
@@ -22,7 +16,7 @@ export enum UserTypes {
     Regular = 1,
     Admin = 2
 }
-export interface IUser extends IEndpointModel, Document {
+export interface IUser extends Document {
     guid: string;
     name: string;
     type: UserTypes;
