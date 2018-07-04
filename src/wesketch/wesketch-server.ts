@@ -9,6 +9,8 @@ enum WesketchEventType {
     Draw,
     StopDraw,
     ClearCanvas,
+    ChangeColor,
+    ChangeBrushSize,
     UpdateGameState,
     ResetGame
 }
@@ -41,6 +43,8 @@ interface IWesketchGameState {
     players: IPlayer[],
     round: number;
     currentWord: string;
+    currentColor: string;
+    brushSize: number;
 }
 
 /**
@@ -60,7 +64,9 @@ export class WesketchServer {
             phase: PhaseTypes.Lobby,
             players: [],
             round: 1,
-            currentWord: ''
+            currentWord: '',
+            currentColor: '#000000',
+            brushSize: 3
         };
     }
 
@@ -98,6 +104,12 @@ export class WesketchServer {
                 break;
             case WesketchEventType.ClearCanvas:
                 new ClearCanvas().handle(event, this);
+                break;
+            case WesketchEventType.ChangeColor:
+                new ChangeColor().handle(event, this);
+                break;
+            case WesketchEventType.ChangeBrushSize:
+                new ChangeBrushSize().handle(event, this);
                 break;
             case WesketchEventType.ResetGame:
                 new ResetGame().handle(event, this);
@@ -252,6 +264,20 @@ class ClearCanvas implements IEventHandler {
     }
 }
 
+class ChangeColor implements IEventHandler {
+    handle = (event: IWesketchEvent, server: WesketchServer) => {
+        server.state.currentColor = event.value;
+        new UpdateGameState().execute(server);
+    }
+}
+
+class ChangeBrushSize implements IEventHandler {
+    handle = (event: IWesketchEvent, server: WesketchServer) => {
+        server.state.brushSize += +event.value;
+        new UpdateGameState().execute(server);
+    }
+}
+
 class ResetGame implements IEventHandler {
     handle = (event: IWesketchEvent, server: WesketchServer) => {
         var resetState = {
@@ -263,6 +289,9 @@ class ResetGame implements IEventHandler {
         server.state = resetState;
 
         server.sendServerEvent(WesketchEventType.SystemMessage, { message: 'Game has been reset' });
-        new UpdateGameState().execute(server);
+        new UpdateGameState().execute(server);  
+        
+        // TODO: hmmm, want o be able to do this...somehow
+        // new ClearCanvas().handle({}, server);
     }
 }
