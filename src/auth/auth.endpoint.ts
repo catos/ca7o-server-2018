@@ -69,10 +69,8 @@ export class AuthEndpoint implements IEndpoint {
 
     register = (request: Request, response: Response, next: NextFunction): void => {
         const newUser = request.body as IUser;
-        console.log(newUser);
         User.find({ username: newUser.username }).exec()
             .then(user => {
-                console.log(user.length);
                 if (user.length) {
                     response.status(StatusCodes.BadRequest);
                     return response.json({ errors: ['User with username: ' + newUser.username + ' already exist'] });
@@ -100,7 +98,6 @@ export class AuthEndpoint implements IEndpoint {
                 }
             })
             .catch(error => this.errorHandler(error, response));
-
     }
 
 }

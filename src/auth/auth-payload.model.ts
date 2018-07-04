@@ -1,5 +1,5 @@
-export class AuthPayload {
-    id: number
-    name: string
-    username: string
+export interface JwtPayload {
+    guid: string;
+    name: string;
+    username: string;
 }

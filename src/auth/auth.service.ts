@@ -3,7 +3,7 @@ import crypto from 'crypto';
 import jwt from 'jsonwebtoken'
 
 import { IUser } from '../user/user.model';
-import { AuthPayload } from './auth-payload.model';
+import { JwtPayload } from './auth-payload.model';
 
 export class AuthService {
 
@@ -29,14 +29,10 @@ export class AuthService {
         });
     }
 
-    getRequestUserId = (request: Request): number => {
+    getRequestUserId = (request: Request): string => {
         const stringToken = request.headers.authorization as string;
-        const payload = jwt.decode(stringToken) as AuthPayload;
-        if (payload.id) {
-            return payload.id;
-        }
-
-        return -1;
+        const payload = jwt.decode(stringToken) as JwtPayload;
+        return payload.guid;
     }
 
     createSalt = (): string => {
