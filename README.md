@@ -22,6 +22,8 @@
 - Det er noe rart med start.js -> server.ts, hva som kalles, rekkefølgen....something...
 - NodeJS JWT Auth sample https://github.com/auth0-blog/nodejs-jwt-authentication-sample 
 - Mean App Server http://brianflove.com/2017/07/16/mean-app-server/
+- https://github.com/vladotesanovic/typescript-mongoose-express
+
 
 ## tsconfig
 - https://www.typescriptlang.org/docs/handbook/tsconfig-json.html

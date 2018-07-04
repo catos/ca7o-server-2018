@@ -8,11 +8,7 @@ import socketIo from 'socket.io';
 import errorHandler = require('errorhandler')
 import mongoose = require('mongoose')
 
-import { IUser } from './user/user.model';
-import { userSchema } from './user/user.model';
-
 import { serverConfig } from './server.config'
-import { BaseMongooseRepository } from './shared/base-mongoose.repository'
 import { AuthService } from './auth/auth.service'
 
 import { WesketchServer } from './wesketch/wesketch-server';
@@ -97,12 +93,9 @@ export class Server {
         }
         router.use(cors(corsOptions))
 
-        // TODO: what do I do with this ?
-        const userRepository = new BaseMongooseRepository<IUser>("User", userSchema)
-
         // Create endpoints        
-        new AuthEndpoint('/auth', router, userRepository, this.authService);
-        new UserEndpoint('/api/users', router, userRepository, this.authService);
+        new AuthEndpoint('/auth', router, this.authService);
+        new UserEndpoint('/api/users', router, this.authService);
         new RecipesEndpoint('/api/recipes', router, this.authService);
 
         // Router

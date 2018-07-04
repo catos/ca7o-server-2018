@@ -3,8 +3,8 @@ import { NextFunction, Response, Request, Router } from 'express';
 import { StatusCodes } from '../shared/status-codes';
 import { IEndpoint } from '../shared/endpoint.interface';
 import { AuthService } from '../auth/auth.service';
-import { IBaseRepository } from '../shared/base-repository.interface';
-import { IUser, User } from './user.model';
+import { IUser, User, UserTypes } from './user.model';
+import { Utils } from '../shared/utils';
 
 
 export class UserEndpoint implements IEndpoint {
@@ -12,12 +12,10 @@ export class UserEndpoint implements IEndpoint {
     constructor(
         public path: string,
         public router: Router,
-        public repository: IBaseRepository<IUser>,
         public authService: AuthService
     ) {
         router.all(path + '*', this.init);
         router.get(path + '/', this.authService.isAuthenticated, this.all);
-        router.get(path + '/find', this.authService.isAuthenticated, this.find);
         router.get(path + '/:id', this.authService.isAuthenticated, this.get);
         router.post(path + '/', this.authService.isAuthenticated, this.create);
         router.put(path + '/:id', this.authService.isAuthenticated, this.update);
@@ -38,79 +36,69 @@ export class UserEndpoint implements IEndpoint {
     }
 
     create = (request: Request, response: Response, next: NextFunction) => {
-        let item = request.body as IUser;
-        this.repository
-            .create(item)
-            .then(result => {
-                response.json(result);
+        const newUser = request.body as IUser;
+        User.find({ username: newUser.username }).exec()
+            .then(existingUser => {
+                if (existingUser.length) {
+                    response.status(StatusCodes.BadRequest);
+                    return response.json({ errors: ['User with username: ' + newUser.username + ' already exist'] });
+                } else {
+                    // TODO: add more validation
+                    if (newUser.name === undefined || newUser.name.length > 16) {
+                        response.status(StatusCodes.BadRequest);
+                        return response.json({ errors: ['Invalid name ' + newUser.name + ', max 16 characters allowed'] });
+                    }
+
+                    newUser.guid = Utils.uuidv4();
+                    newUser.type = UserTypes.Regular;
+
+                    const password = newUser.password;
+                    newUser.salt = this.authService.createSalt();
+                    newUser.password = this.authService.hashPassword(password, newUser.salt);
+
+                    User.create(newUser)
+                        .then(result => response.json(result))
+                        .catch(error => this.errorHandler(error, response));
+                }
             })
             .catch(error => this.errorHandler(error, response));
     }
 
     update = (request: Request, response: Response, next: NextFunction) => {
-        let item = request.body as IUser;
-        this.repository
-            .update(request.params.id, item)
-            .then((result) => {
-                response.json(result);
-            })
+        const user = request.body as IUser;
+        User.findByIdAndUpdate(request.params.id, user, { new: true }).exec()
+            .then(result => response.json(result))
             .catch(error => this.errorHandler(error, response));
     }
 
     delete = (request: Request, response: Response, next: NextFunction) => {
-        this.repository
-            .delete(request.params.id)
-            .then((result) => {
-                response.json(result);
-            })
+        User.findByIdAndRemove(request.params.id).exec()
+            .then(result => response.json(result))
             .catch(error => this.errorHandler(error, response));
     }
 
     all = (request: Request, response: Response, next: NextFunction) => {
-        // this.repository
-        //     .all()
-        //     .then(result => {
-        //         response.json(result);
-        //     })
-        //     .catch(error => this.errorHandler(error, response));
+        const conditions = (request.query.q !== undefined)
+            ? {
+                '$or': [
+                    {
+                        username: new RegExp(request.query.q, 'i')
+                    },
+                    {
+                        name: new RegExp(request.query.q, 'i')
+                    }
+                ]
+            }
+            : {};
 
-        // TODO: reference: https://github.com/vladotesanovic/typescript-mongoose-express
-        // TODO: remove base-repository
-        // TODO: remove base-mongoose.repository
-        // TODO: implement endpoints like this!
-        const query = User.find({});
-        query.exec()
+        User.find(conditions).exec()
             .then(result => response.json(result))
             .catch(error => this.errorHandler(error, response));
     }
 
     get = (request: Request, response: Response, next: NextFunction) => {
-        this.repository
-            .getById(request.params.id)
-            .then((result) => {
-                response.json(result);
-            })
+        User.findById(request.params.id).exec()
+            .then(result => response.json(result))
             .catch(error => this.errorHandler(error, response));
     }
-
-    find = (request: Request, response: Response, next: NextFunction) => {
-        var q = {
-            '$or': [
-                {
-                    username: new RegExp(request.query.q, 'i')
-                },
-                {
-                    name: new RegExp(request.query.q, 'i')
-                }
-            ]
-        }
-
-        this.repository
-            .find(q)
-            .then((result) => {
-                response.json(result);
-            })
-            .catch(error => this.errorHandler(error, response));
-    }
-
 }
