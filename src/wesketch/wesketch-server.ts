@@ -1,3 +1,6 @@
+import { WORDLIST } from "./wordlist-new";
+import { Utils } from "../shared/utils";
+
 enum WesketchEventType {
     ServerError,
     PlayerJoined,
@@ -12,7 +15,9 @@ enum WesketchEventType {
     ChangeColor,
     ChangeBrushSize,
     UpdateGameState,
-    ResetGame
+    ResetGame,
+    PauseGame,
+    ShowScores
 }
 
 interface IWesketchEvent {
@@ -36,13 +41,20 @@ interface IPlayer {
     userId: string;
     name: string;
     isReady: boolean;
+    drawCount: number;
+    isDrawing: boolean;
+    guessedWord: boolean;
 }
 
 interface IWesketchGameState {
     phase: PhaseTypes,
     players: IPlayer[],
+
+    gamePaused: boolean;
     round: number;
+    timeRemaining: number;
     currentWord: string;
+
     currentColor: string;
     brushSize: number;
 }
@@ -56,21 +68,30 @@ interface IWesketchGameState {
 export class WesketchServer {
     private _io: SocketIO.Server;
     public state: IWesketchGameState;
+    public defaultState: IWesketchGameState;
+
+    readonly ROUND_DURATION: number = 10; // 90
+    readonly END_ROUND_DURATION: number = 10; // 10
+    readonly END_GAME_DURATION: number = 10; // 60
+
+    readonly DRAWINGS_PER_PLAYER: number = 3;
+    readonly TIMER_DELAY: number = 1000;
 
     constructor(io: SocketIO.Server) {
         this._io = io;
 
-        this.state = {
+        this.defaultState = {
             phase: PhaseTypes.Lobby,
             players: [],
+            gamePaused: false,
             round: 1,
+            timeRemaining: 0,
             currentWord: '',
             currentColor: '#000000',
             brushSize: 3
         };
-    }
+        this.state = this.defaultState;
 
-    init() {
         this._io.on('connection', (client: SocketIO.Socket) => {
             // console.log('### Client Connected')
 
@@ -83,6 +104,7 @@ export class WesketchServer {
                 // console.log('### Client Disconnected')
             })
         });
+
     }
 
     handleEvent(event: IWesketchEvent) {
@@ -114,6 +136,9 @@ export class WesketchServer {
             case WesketchEventType.ResetGame:
                 new ResetGame().handle(event, this);
                 break;
+            case WesketchEventType.PauseGame:
+                new PauseGame().handle(event, this);
+                break;
             default:
                 this.sendServerEvent(WesketchEventType.ServerError,
                     {
@@ -139,73 +164,164 @@ export class WesketchServer {
     sendEvent(event: IWesketchEvent) {
         this._io.emit('event', event);
     }
-}
 
-/**
- * ServerCommand: triggered by events and conditions, produces events
- * startGame
- * resetGame
- * startRound
- * endRound
- * endGame
- * 
- * startTimer
- */
-interface IServerCommand {
-    execute(server: WesketchServer): void;
-}
+    // startTimer = (duration: number, next: () => void) => {
+    //     this.state.timeRemaining = duration;
 
-class UpdateGameState implements IServerCommand {
-    execute(server: WesketchServer): void {
-        server.sendServerEvent(WesketchEventType.UpdateGameState, server.state);
+    //     var self = this;
+    //     this.intervalObj = setInterval(() => {
+    //         console.log('startTime: ' + duration + ', remaining: ' + self.state.timeRemaining);
+    //         if (self.state.timeRemaining <= 0) {
+    //             self.stop = true;
+    //         }
+
+    //         if (self.stop) {
+    //             clearInterval(self.intervalObj);
+
+    //             if (!self.reset) {
+    //                 return next();
+    //             }
+    //         } else {
+    //             self.state.timeRemaining--;
+    //         }
+
+    //         self.sendServerEvent(WesketchEventType.UpdateGameState, self.state);
+    //     }, 1000);
+    // }
+
+    startTimer = (duration: number, next: () => void) => {
+        this.state.timeRemaining = duration;
+        const intervalId = setInterval(() => {
+            if (!this.state.gamePaused) {
+                this.state.timeRemaining--;
+
+                if (this.state.timeRemaining <= 0) {
+                    clearInterval(intervalId);
+                    console.log('cleared interval! run next()');
+                    next();
+                }
+
+                this.sendServerEvent(WesketchEventType.UpdateGameState, this.state);
+            }
+        }, this.TIMER_DELAY);
     }
-}
 
-class StartGame implements IServerCommand {
-    execute(server: WesketchServer): void {
-        server.sendServerEvent(WesketchEventType.SystemMessage, { message: `Game started!` })
+    startRound = () => {
+        // Set phase to drawing
+        this.state.phase = PhaseTypes.Drawing;
 
-        if (server.state.phase === PhaseTypes.Lobby) {
-            server.state.phase = PhaseTypes.Drawing;
-            new UpdateGameState().execute(server);
+        // Increment round counter
+        this.state.round += this.state.round;
+
+        // Choose drawing player
+        const sortedPlayers = this.state.players.sort((a, b) => {
+            if (a.drawCount > b.drawCount) {
+                return 1;
+            }
+
+            if (b.drawCount > a.drawCount) {
+                return -1;
+            }
+
+            return 0;
+        });
+        const drawingPlayer = sortedPlayers[0];
+
+        this.state.players.map(player => {
+            if (player.userId == drawingPlayer.userId) {
+                player.isDrawing = true;
+                player.drawCount++;
+            }
+        })
+
+        // Choose current word
+        this.state.currentWord = Utils.randomElement(WORDLIST);
+
+        // Update game state
+        this.sendServerEvent(WesketchEventType.UpdateGameState, this.state);
+
+        // Start timer
+        // new StartTimer().execute(server, new EndRound().execute);
+        this.startTimer(this.ROUND_DURATION, this.endRound);
+        this.sendServerEvent(WesketchEventType.SystemMessage, { message: `Round started!` })
+    }
+
+    endRound = () => {
+        // Set phase to endRound
+        this.state.phase = PhaseTypes.RoundEnd;
+
+        // Show last word to players
+        this.sendServerEvent(
+            WesketchEventType.SystemMessage,
+            { message: `The word was: ${this.state.currentWord}` });
+
+        // Reset players
+        this.state.players.map(p => {
+            p.isDrawing = false;
+            p.guessedWord = false;
+        });
+
+        // Clear canvas
+        this.sendServerEvent(WesketchEventType.ClearCanvas, {});
+
+        // End game if all players have drawn DRAWINGS_PER_PLAYER times each
+        if (this.state.players.every(p => p.drawCount === this.DRAWINGS_PER_PLAYER)) {
+            this.endGame();
         }
+
+        // Update game state
+        this.sendServerEvent(WesketchEventType.UpdateGameState, this.state);
+
+        // Start new round in X seconds
+        this.startTimer(this.END_ROUND_DURATION, this.startRound);
+        this.sendServerEvent(
+            WesketchEventType.SystemMessage,
+            { message: `Starting new round in ${this.END_ROUND_DURATION} seconds...` })
+    }
+
+    endGame = () => {
+        // Set end phase
+        this.state.phase = PhaseTypes.GameEnd;
+
+        // Update game state
+        this.sendServerEvent(WesketchEventType.UpdateGameState, this.state);
+
+        // Show scores
+        this.sendServerEvent(WesketchEventType.ShowScores, {});
+
+        // Reset game in X seconds
+        this.startTimer(this.END_GAME_DURATION, this.resetGame);
+        this.sendServerEvent(
+            WesketchEventType.SystemMessage,
+            { message: `Reset game in ${this.END_GAME_DURATION} seconds...` })
+
+    }
+
+    resetGame = () => {
+        // TODO: reset game
+        console.log('reset game!');
     }
 }
 
-// TODO: er dette en command eller event ? Skal alt bare være events ?
-// class ResetGame implements IServerCommand {
-//     execute(server: WesketchServer): void {
-//         var resetState = {
-//             phase: PhaseTypes.Lobby,
-//             players: server.state.players,
-//             round: 1,
-//             currentWord: ''
-//         } as IWesketchGameState;
-//         server.state = resetState;
-
-//         new UpdateGameState().execute(server);
-//     }
-
-// }
-
-/**
+/**************************************************************************************
  * EventHandlers: responds to client events, modifies gameState, may produce new events
- * PlayerJoined
- * PlayerLeft
- * PlayerReady
- */
+ * TODO: move to separate files...?
+ **************************************************************************************/
 
-interface IEventHandler {
+interface IWesketchEventHandler {
     handle(event: IWesketchEvent, server: WesketchServer): void;
 }
 
-class PlayerJoined implements IEventHandler {
+class PlayerJoined implements IWesketchEventHandler {
     handle = (event: IWesketchEvent, server: WesketchServer) => {
         const player = {
             clientId: event.client,
             userId: event.userId,
             name: event.userName,
-            isReady: false
+            isReady: false,
+            drawCount: 0,
+            isDrawing: false,
+            guessedWord: false
         };
 
         const existingPlayer = server.state.players
@@ -214,22 +330,22 @@ class PlayerJoined implements IEventHandler {
         if (existingPlayer === undefined) {
             server.state.players.push(player);
             server.sendServerEvent(WesketchEventType.SystemMessage, { message: `${player.name} joined the game` });
-            new UpdateGameState().execute(server);
+            server.sendServerEvent(WesketchEventType.UpdateGameState, server.state);
         }
 
     }
 }
 
-class PlayerLeft implements IEventHandler {
+class PlayerLeft implements IWesketchEventHandler {
     handle = (event: IWesketchEvent, server: WesketchServer) => {
         server.state.players = server.state.players.filter(p => p.userId !== event.userId)
 
         server.sendServerEvent(WesketchEventType.SystemMessage, { message: `Player left the game` });
-        new UpdateGameState().execute(server);
+        server.sendServerEvent(WesketchEventType.UpdateGameState, server.state);
     }
 }
 
-class PlayerReady implements IEventHandler {
+class PlayerReady implements IWesketchEventHandler {
     handle = (event: IWesketchEvent, server: WesketchServer) => {
         server.state.players.forEach(p => {
             if (p.userId === event.userId) {
@@ -239,59 +355,67 @@ class PlayerReady implements IEventHandler {
 
         if (server.state.players.every(p => p.isReady) && server.state.players.length > 1) {
             server.sendServerEvent(WesketchEventType.SystemMessage, { message: 'All players are ready, starting game!' });
-            new StartGame().execute(server);
+            server.startRound();
         }
 
-        new UpdateGameState().execute(server);
+        server.sendServerEvent(WesketchEventType.UpdateGameState, server.state);
     }
 }
 
-class Message implements IEventHandler {
+class Message implements IWesketchEventHandler {
     handle = (event: IWesketchEvent, server: WesketchServer) => {
         server.sendEvent(event);
     }
 }
 
-class Draw implements IEventHandler {
+class Draw implements IWesketchEventHandler {
     handle = (event: IWesketchEvent, server: WesketchServer) => {
         server.sendEvent(event);
     }
 }
 
-class ClearCanvas implements IEventHandler {
+class ClearCanvas implements IWesketchEventHandler {
     handle = (event: IWesketchEvent, server: WesketchServer) => {
         server.sendEvent(event);
     }
 }
 
-class ChangeColor implements IEventHandler {
+// TODO: group these events into ChangeDrawSettings ?
+class ChangeColor implements IWesketchEventHandler {
     handle = (event: IWesketchEvent, server: WesketchServer) => {
         server.state.currentColor = event.value;
-        new UpdateGameState().execute(server);
+        server.sendServerEvent(WesketchEventType.UpdateGameState, server.state);
     }
 }
 
-class ChangeBrushSize implements IEventHandler {
+class ChangeBrushSize implements IWesketchEventHandler {
     handle = (event: IWesketchEvent, server: WesketchServer) => {
         server.state.brushSize += +event.value;
-        new UpdateGameState().execute(server);
+        server.sendServerEvent(WesketchEventType.UpdateGameState, server.state);
     }
 }
 
-class ResetGame implements IEventHandler {
+class ResetGame implements IWesketchEventHandler {
     handle = (event: IWesketchEvent, server: WesketchServer) => {
-        var resetState = {
-            phase: PhaseTypes.Lobby,
-            players: server.state.players,
-            round: 1,
-            currentWord: ''
-        } as IWesketchGameState;
-        server.state = resetState;
+        const players = server.state.players;
+        server.state = server.defaultState;
+        server.state.players = players;
 
         server.sendServerEvent(WesketchEventType.SystemMessage, { message: 'Game has been reset' });
-        new UpdateGameState().execute(server);  
-        
-        // TODO: hmmm, want o be able to do this...somehow
-        // new ClearCanvas().handle({}, server);
+        server.sendServerEvent(WesketchEventType.UpdateGameState, server.state);
+        server.sendServerEvent(WesketchEventType.ClearCanvas, {});
+    }
+}
+
+class PauseGame implements IWesketchEventHandler {
+    handle = (event: IWesketchEvent, server: WesketchServer) => {
+        server.state.gamePaused = !server.state.gamePaused;
+
+        const message = server.state.gamePaused
+            ? 'Game has been paused'
+            : 'Game has been un-paused';
+
+        server.sendServerEvent(WesketchEventType.SystemMessage, { message });
+        server.sendServerEvent(WesketchEventType.UpdateGameState, server.state);
     }
 }

@@ -5,4 +5,8 @@ export class Utils {
             return v.toString(16);
         });
     }
+
+    static randomElement = (array: any[]) => {
+        return array[Math.floor(Math.random() * array.length)];
+    }
 }
