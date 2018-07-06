@@ -41,6 +41,7 @@ interface IPlayer {
     userId: string;
     name: string;
     isReady: boolean;
+    score: number;
     drawCount: number;
     isDrawing: boolean;
     guessedWord: boolean;
@@ -71,7 +72,7 @@ export class WesketchServer {
     public defaultState: IWesketchGameState;
 
     readonly ROUND_DURATION: number = 10; // 90
-    readonly END_ROUND_DURATION: number = 10; // 10
+    readonly END_ROUND_DURATION: number = 5; // 10
     readonly END_GAME_DURATION: number = 10; // 60
 
     readonly DRAWINGS_PER_PLAYER: number = 3;
@@ -213,6 +214,9 @@ export class WesketchServer {
         // Increment round counter
         this.state.round += this.state.round;
 
+        // Clear canvas
+        this.sendServerEvent(WesketchEventType.ClearCanvas, {});
+
         // Choose drawing player
         const sortedPlayers = this.state.players.sort((a, b) => {
             if (a.drawCount > b.drawCount) {
@@ -261,9 +265,6 @@ export class WesketchServer {
             p.guessedWord = false;
         });
 
-        // Clear canvas
-        this.sendServerEvent(WesketchEventType.ClearCanvas, {});
-
         // End game if all players have drawn DRAWINGS_PER_PLAYER times each
         if (this.state.players.every(p => p.drawCount === this.DRAWINGS_PER_PLAYER)) {
             this.endGame();
@@ -300,6 +301,23 @@ export class WesketchServer {
     resetGame = () => {
         // TODO: reset game
         console.log('reset game!');
+
+        const players = this.state.players.map(p => {
+            p.isReady = false;
+            p.score = 0;
+            p.drawCount = 0;
+            p.isDrawing = false;
+            p.guessedWord = false;
+        });
+        
+        this.state = this.defaultState;
+        this.state.players = players;
+
+
+
+        this.sendServerEvent(WesketchEventType.SystemMessage, { message: 'Game has been reset' });
+        this.sendServerEvent(WesketchEventType.UpdateGameState, this.state);
+        this.sendServerEvent(WesketchEventType.ClearCanvas, {});
     }
 }
 
@@ -319,6 +337,7 @@ class PlayerJoined implements IWesketchEventHandler {
             userId: event.userId,
             name: event.userName,
             isReady: false,
+            score: 0,
             drawCount: 0,
             isDrawing: false,
             guessedWord: false
@@ -395,17 +414,17 @@ class ChangeBrushSize implements IWesketchEventHandler {
     }
 }
 
-class ResetGame implements IWesketchEventHandler {
-    handle = (event: IWesketchEvent, server: WesketchServer) => {
-        const players = server.state.players;
-        server.state = server.defaultState;
-        server.state.players = players;
+// class ResetGame implements IWesketchEventHandler {
+//     handle = (event: IWesketchEvent, server: WesketchServer) => {
+//         const players = server.state.players;
+//         server.state = server.defaultState;
+//         server.state.players = players;
 
-        server.sendServerEvent(WesketchEventType.SystemMessage, { message: 'Game has been reset' });
-        server.sendServerEvent(WesketchEventType.UpdateGameState, server.state);
-        server.sendServerEvent(WesketchEventType.ClearCanvas, {});
-    }
-}
+//         server.sendServerEvent(WesketchEventType.SystemMessage, { message: 'Game has been reset' });
+//         server.sendServerEvent(WesketchEventType.UpdateGameState, server.state);
+//         server.sendServerEvent(WesketchEventType.ClearCanvas, {});
+//     }
+// }
 
 class PauseGame implements IWesketchEventHandler {
     handle = (event: IWesketchEvent, server: WesketchServer) => {
