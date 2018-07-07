@@ -300,7 +300,7 @@ export class WesketchServer {
 
     resetGame = () => {
         // TODO: reset game
-        console.log('reset game!');
+        // console.log('reset game!');
         
         this.state = this.defaultState;
         const players = this.state.players.map(p => {
