@@ -37,6 +37,7 @@ export enum IngredientTypes {
     Dairy = 4,
     Spice = 5,
     Sauce = 6,
+    Canned = 7,
 }
 
 export interface IIngredient extends mongoose.Document {

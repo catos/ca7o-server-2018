@@ -5,7 +5,7 @@ import { IEndpoint } from '../shared/endpoint.interface';
 import { AuthService } from '../auth/auth.service';
 
 import { IUser, User, UserTypes } from '../user/user.model';
-import { Utils } from '../shared/utils';
+import { uuidv4 } from '../shared/utils';
 
 export class AuthEndpoint implements IEndpoint {
     constructor(
@@ -81,7 +81,7 @@ export class AuthEndpoint implements IEndpoint {
                         return response.json({ errors: ['Invalid name ' + newUser.name + ', max 16 characters allowed'] });
                     }
 
-                    newUser.guid = Utils.uuidv4();
+                    newUser.guid = uuidv4();
                     newUser.type = UserTypes.Regular;
 
                     const password = newUser.password;

@@ -425,13 +425,42 @@
         "description": "Velit labore ad labore dolor cillum veniam magna non dolor excepteur dolore.",
         "time": 20,
         "ingredients": [
-            "1stk blomkål",
-            "½ løk",
-            "2stk vårløk",
-            "2stk kyllingbuljong (terninger)",
-            "2dl helmelk",
-            "8dl vann",
-            "Bacon to taste"
+            {
+                "quantity": 1,
+                "unit": "stk",
+                "name": "blomkål",
+                "type": 0
+            },
+            {
+                "quantity": 0.5,
+                "unit": "stk",
+                "name": "løk",
+                "type": 0
+            },
+            {
+                "quantity": 2,
+                "unit": "stk",
+                "name": "vårløk",
+                "type": 0
+            },
+            {
+                "quantity": 8,
+                "unit": "dl",
+                "name": "kyllingkraft",
+                "type": 6
+            },
+            {
+                "quantity": 2,
+                "unit": "dl",
+                "name": "helmelk",
+                "type": 4
+            },
+            {
+                "quantity": 200,
+                "unit": "g",
+                "name": "bacon",
+                "type": 3
+            }
         ]
     },
     {
@@ -442,16 +471,45 @@
             "kjapp"
         ],
         "thumbnail": "http://a57.foxnews.com/images.foxnews.com/content/fox-news/food-drink/2017/11/08/trumps-hamburger-sells-out-in-japan/_jcr_content/par/featured_image/media-0.img.jpg/931/524/1510187336113.jpg?ve=1&tl=1&text=big-top-image",
-        "description": "Deserunt sint officia deserunt ex id eu aliquip qui.",
+        "description": "Saus: Majones, ketchup, eplecider vinegar, løkpulver, hvitløkspulver, paprikakrydder.",
         "time": 15,
         "ingredients": [
-            "Hamburger",
-            "Salat",
-            "Løk",
-            "Tomat",
-            "Cheddar",
-            "Brød",
-            "Saus: Majones, ketchup, eplecider vinegar, løkpulver, hvitløkspulver, paprikakrydder"
+            {
+                "quantity": 4,
+                "unit": "stk",
+                "name": "hamburger",
+                "type": 3
+            },
+            {
+                "quantity": 1,
+                "unit": "stk",
+                "name": "salat",
+                "type": 0
+            },
+            {
+                "quantity": 1,
+                "unit": "stk",
+                "name": "løk",
+                "type": 0
+            },
+            {
+                "quantity": 1,
+                "unit": "stk",
+                "name": "tomat",
+                "type": 0
+            },
+            {
+                "quantity": 4,
+                "unit": "stk",
+                "name": "cheddar",
+                "type": 4
+            },
+            {
+                "quantity": 4,
+                "unit": "stk",
+                "name": "hamburgerbrød",
+                "type": 2
+            }
         ]
     },
     {
@@ -465,8 +523,18 @@
         "description": "Nisi fugiat voluptate veniam quis nisi aliquip consequat elit aliquip cupidatat sunt cillum.",
         "time": 10,
         "ingredients": [
-            "Pølse",
-            "Brød"
+            {
+                "quantity": 1,
+                "unit": "stk",
+                "name": "pakke med pølser",
+                "type": 3
+            },
+            {
+                "quantity": 1,
+                "unit": "stk",
+                "name": "pakke med pølsebrød eller lomper",
+                "type": 2
+            }
         ]
     },
     {
@@ -478,14 +546,54 @@
         "description": "Elit deserunt ea cillum id pariatur.",
         "time": 30,
         "ingredients": [
-            "Kjøttkaker",
-            "Potet",
-            "Kål",
-            "Gulrot",
-            "Brunsaus",
-            "2ss smør",
-            "4dl helmelk",
-            "2ss hvetemel"
+            {
+                "quantity": 1,
+                "unit": "stk",
+                "name": "pakke med kjøttkaker",
+                "type": 3
+            },
+            {
+                "quantity": 1,
+                "unit": "stk",
+                "name": "pakke med poteter",
+                "type": 2
+            },
+            {
+                "quantity": 1,
+                "unit": "stk",
+                "name": "kål",
+                "type": 0
+            },
+            {
+                "quantity": 1,
+                "unit": "stk",
+                "name": "pakke med gulrot",
+                "type": 0
+            },
+            {
+                "quantity": 1,
+                "unit": "stk",
+                "name": "brunsaus i pose",
+                "type": 6
+            },
+            {
+                "quantity": 2,
+                "unit": "ss",
+                "name": "smør",
+                "type": 4
+            },
+            {
+                "quantity": 4,
+                "unit": "dl",
+                "name": "helmelk",
+                "type": 4
+            },
+            {
+                "quantity": 2,
+                "unit": "ss",
+                "name": "hvetemel",
+                "type": 2
+            }
         ]
     },
     {
@@ -500,14 +608,54 @@
         "description": "Dolore est reprehenderit tempor ullamco.",
         "time": 20,
         "ingredients": [
-            "Kyllingfilet",
-            "½ rødløk",
-            "½ agurk",
-            "1stk granateple",
-            "salat",
-            "2stk avokado",
-            "fetaost",
-            "spirer"
+            {
+                "quantity": 2,
+                "unit": "stk",
+                "name": "kyllingfileter",
+                "type": 3
+            },
+            {
+                "quantity": 0.5,
+                "unit": "stk",
+                "name": "rødløk",
+                "type": 0
+            },
+            {
+                "quantity": 0.5,
+                "unit": "stk",
+                "name": "agurk",
+                "type": 0
+            },
+            {
+                "quantity": 1,
+                "unit": "stk",
+                "name": "granateple",
+                "type": 0
+            },
+            {
+                "quantity": 1,
+                "unit": "stk",
+                "name": "salat",
+                "type": 0
+            },
+            {
+                "quantity": 2,
+                "unit": "stk",
+                "name": "avokado",
+                "type": 0
+            },
+            {
+                "quantity": 1,
+                "unit": "stk",
+                "name": "pakke med fetaost",
+                "type": 4
+            },
+            {
+                "quantity": 1,
+                "unit": "stk",
+                "name": "pakke med spirer",
+                "type": 0
+            }
         ]
     },
     {
@@ -521,10 +669,24 @@
         "description": "Consectetur consequat commodo cupidatat consectetur aliqua tempor magna eiusmod.",
         "time": 20,
         "ingredients": [
-            "Pannekaker",
-            "Blåbærsyltetøy",
-            "Bacon",
-            "Sukker"
+            {
+                "quantity": 1,
+                "unit": "stk",
+                "name": "pakke med pannekaker",
+                "type": 2
+            },
+            {
+                "quantity": 1,
+                "unit": "stk",
+                "name": "blåbærsyltetøy",
+                "type": 1
+            },
+            {
+                "quantity": 1,
+                "unit": "stk",
+                "name": "pakke med bacon",
+                "type": 3
+            }
         ]
     },
     {
@@ -538,7 +700,12 @@
         "description": "Culpa enim reprehenderit in magna occaecat fugiat laborum cupidatat enim sit.",
         "time": 5,
         "ingredients": [
-            "Fjordlands go!"
+            {
+                "quantity": 1,
+                "unit": "stk",
+                "name": "pakke med fjorlands!",
+                "type": 4
+            }
         ]
     },
     {
@@ -552,13 +719,42 @@
         "description": "Sunt ea commodo labore aliqua veniam mollit velit eu cupidatat ut ad deserunt.",
         "time": 10,
         "ingredients": [
-            "Egg",
-            "Creme Fraiche",
-            "Spekeskinke",
-            "Fenalår",
-            "Majones",
-            "Rundstykker",
-            "Fersk gressløk"
+            {
+                "quantity": 5,
+                "unit": "stk",
+                "name": "egg",
+                "type": 3
+            },
+            {
+                "quantity": 1,
+                "unit": "stk",
+                "name": "creme fraiche",
+                "type": 4
+            },
+            {
+                "quantity": 1,
+                "unit": "stk",
+                "name": "pakke med spekeskinke eller fenalår",
+                "type": 3
+            },
+            {
+                "quantity": 1,
+                "unit": "stk",
+                "name": "majones",
+                "type": 4
+            },
+            {
+                "quantity": 1,
+                "unit": "stk",
+                "name": "pakke med rundstykker",
+                "type": 2
+            },
+            {
+                "quantity": 1,
+                "unit": "stk",
+                "name": "fersk gressløk",
+                "type": 0
+            }
         ]
     },
     {
@@ -574,12 +770,42 @@
         "description": "Velit anim ex sit voluptate sit et id deserunt aute excepteur pariatur irure incididunt.",
         "time": 10,
         "ingredients": [
-            "Egg",
-            "Creme Fraiche",
-            "Laks",
-            "Majones",
-            "Rundstykker",
-            "Fersk gressløk"
+            {
+                "quantity": 5,
+                "unit": "stk",
+                "name": "egg",
+                "type": 3
+            },
+            {
+                "quantity": 1,
+                "unit": "stk",
+                "name": "creme fraiche",
+                "type": 4
+            },
+            {
+                "quantity": 1,
+                "unit": "stk",
+                "name": "røkt laks",
+                "type": 3
+            },
+            {
+                "quantity": 1,
+                "unit": "stk",
+                "name": "majones",
+                "type": 4
+            },
+            {
+                "quantity": 1,
+                "unit": "stk",
+                "name": "pakke med rundstykker",
+                "type": 2
+            },
+            {
+                "quantity": 1,
+                "unit": "stk",
+                "name": "fersk gressløk",
+                "type": 0
+            }
         ]
     },
     {
@@ -593,10 +819,30 @@
         "description": "Id amet excepteur eiusmod veniam non nulla sit non in.",
         "time": 15,
         "ingredients": [
-            "6 egg",
-            "Skinke",
-            "Paprika",
-            "Revet ost"
+            {
+                "quantity": 6,
+                "unit": "stk",
+                "name": "egg",
+                "type": 3
+            },
+            {
+                "quantity": 1,
+                "unit": "stk",
+                "name": "pakke med skinke",
+                "type": 3
+            },
+            {
+                "quantity": 1,
+                "unit": "stk",
+                "name": "paprika",
+                "type": 0
+            },
+            {
+                "quantity": 50,
+                "unit": "g",
+                "name": "revet ost",
+                "type": 4
+            }
         ]
     },
     {
@@ -611,13 +857,48 @@
         "description": "Labore anim veniam Lorem officia Lorem duis magna dolore anim labore consequat occaecat exercitation duis.",
         "time": 20,
         "ingredients": [
-            "4stk kyllingfileter",
-            "400gr potet",
-            "2stk gulrot",
-            "50gr fersk spinat",
-            "1boks hermetiske linser",
-            "1dl melk",
-            "Fersk persille"
+            {
+                "quantity": 4,
+                "unit": "stk",
+                "name": "kyllingfilet",
+                "type": 3
+            },
+            {
+                "quantity": 400,
+                "unit": "g",
+                "name": "potet",
+                "type": 2
+            },
+            {
+                "quantity": 2,
+                "unit": "stk",
+                "name": "gulrot",
+                "type": 0
+            },
+            {
+                "quantity": 50,
+                "unit": "g",
+                "name": "spinat",
+                "type": 0
+            },
+            {
+                "quantity": 1,
+                "unit": "stk",
+                "name": "hermetiske linser",
+                "type": 2
+            },
+            {
+                "quantity": 1,
+                "unit": "dl",
+                "name": "melk",
+                "type": 4
+            },
+            {
+                "quantity": 1,
+                "unit": "stk",
+                "name": "fersk persille",
+                "type": 0
+            }
         ]
     },
     {
@@ -631,12 +912,42 @@
         "description": "Esse sunt cillum ad exercitation.",
         "time": 20,
         "ingredients": [
-            "200gr skinke",
-            "200gr fersk spinat",
-            "4stk potet",
-            "4stk egg",
-            "revet hvitost",
-            "1dl Creme Fraiche"
+            {
+                "quantity": 200,
+                "unit": "g",
+                "name": "skinke",
+                "type": 3
+            },
+            {
+                "quantity": 200,
+                "unit": "g",
+                "name": "fersk spinat",
+                "type": 0
+            },
+            {
+                "quantity": 4,
+                "unit": "stk",
+                "name": "potet",
+                "type": 2
+            },
+            {
+                "quantity": 4,
+                "unit": "stk",
+                "name": "egg",
+                "type": 3
+            },
+            {
+                "quantity": 100,
+                "unit": "g",
+                "name": "revet hvitost",
+                "type": 4
+            },
+            {
+                "quantity": 1,
+                "unit": "dl",
+                "name": "creme fraiche",
+                "type": 4
+            }
         ]
     },
     {
@@ -650,12 +961,42 @@
         "description": "Elit consectetur eiusmod do qui deserunt labore est eu nostrud do id.",
         "time": 20,
         "ingredients": [
-            "Koteletter",
-            "Hodekål",
-            "1stk rødløk",
-            "1stk rød chili",
-            "1stk grønn chili",
-            "2ts spisskummenfrø"
+            {
+                "quantity": 1,
+                "unit": "stk",
+                "name": "pakke koteletter",
+                "type": 3
+            },
+            {
+                "quantity": 1,
+                "unit": "stk",
+                "name": "hodekål",
+                "type": 0
+            },
+            {
+                "quantity": 1,
+                "unit": "stk",
+                "name": "rødløk",
+                "type": 0
+            },
+            {
+                "quantity": 1,
+                "unit": "stk",
+                "name": "rød chili",
+                "type": 0
+            },
+            {
+                "quantity": 1,
+                "unit": "stk",
+                "name": "grønn chili",
+                "type": 0
+            },
+            {
+                "quantity": 2,
+                "unit": "ts",
+                "name": "spisskummenfrø",
+                "type": 5
+            }
         ]
     },
     {
@@ -669,15 +1010,42 @@
         "description": "Proident deserunt proident est exercitation id eiusmod.",
         "time": 30,
         "ingredients": [
-            "Karbonadedeig",
-            "Kidneybønner",
-            "Chilibønner",
-            "1boks hakkede tomater",
-            "Krydderblanding",
-            "Cayennepepper",
-            "Pepper",
-            "Salt",
-            "Ris, rundstykker eller nachochips"
+            {
+                "quantity": 1,
+                "unit": "stk",
+                "name": "pakke karbonadedeig",
+                "type": 3
+            },
+            {
+                "quantity": 1,
+                "unit": "stk",
+                "name": "boks med kidneybønner",
+                "type": 7
+            },
+            {
+                "quantity": 1,
+                "unit": "stk",
+                "name": "boks med chilibønner",
+                "type": 7
+            },
+            {
+                "quantity": 1,
+                "unit": "stk",
+                "name": "boks med hakkede tomater",
+                "type": 7
+            },
+            {
+                "quantity": 1,
+                "unit": "stk",
+                "name": "krydderblanding, pepper, salt og cayennepepper",
+                "type": 5
+            },
+            {
+                "quantity": 1,
+                "unit": "stk",
+                "name": "ris, rundstykker eller nachochips",
+                "type": 0
+            }
         ]
     },
     {
@@ -691,15 +1059,60 @@
         "description": "Consequat veniam nulla culpa ex in sit irure nostrud minim.",
         "time": 30,
         "ingredients": [
-            "Skinke",
-            "Avokado",
-            "Vårløk",
-            "Hvitløk",
-            "Mais",
-            "Sukkererter",
-            "Paprika",
-            "Pastaskruer",
-            "Bacon to taste"
+            {
+                "quantity": 1,
+                "unit": "stk",
+                "name": "pakke skinke",
+                "type": 3
+            },
+            {
+                "quantity": 1,
+                "unit": "stk",
+                "name": "avokado",
+                "type": 0
+            },
+            {
+                "quantity": 1,
+                "unit": "stk",
+                "name": "vårløk",
+                "type": 0
+            },
+            {
+                "quantity": 1,
+                "unit": "stk",
+                "name": "hvitløk",
+                "type": 0
+            },
+            {
+                "quantity": 1,
+                "unit": "stk",
+                "name": "boks med mais",
+                "type": 7
+            },
+            {
+                "quantity": 1,
+                "unit": "stk",
+                "name": "sukkererter",
+                "type": 0
+            },
+            {
+                "quantity": 1,
+                "unit": "stk",
+                "name": "paprika",
+                "type": 0
+            },
+            {
+                "quantity": 1,
+                "unit": "stk",
+                "name": "pastaskruer",
+                "type": 2
+            },
+            {
+                "quantity": 1,
+                "unit": "stk",
+                "name": "pakke bacon",
+                "type": 3
+            }
         ]
     },
     {
@@ -713,11 +1126,36 @@
         "description": "Fugiat veniam aliqua incididunt ex magna occaecat officia quis officia dolor Lorem pariatur veniam Lorem.",
         "time": 45,
         "ingredients": [
-            "400g kjøttdeig",
-            "1stk løk",
-            "pizzasaus",
-            "revet ost",
-            "pizzadeig"
+            {
+                "quantity": 1,
+                "unit": "stk",
+                "name": "karbonadedeig",
+                "type": 3
+            },
+            {
+                "quantity": 1,
+                "unit": "stk",
+                "name": "løk",
+                "type": 0
+            },
+            {
+                "quantity": 1,
+                "unit": "stk",
+                "name": "pizzasaus",
+                "type": 6
+            },
+            {
+                "quantity": 1,
+                "unit": "stk",
+                "name": "passe mengder revet hvitost",
+                "type": 4
+            },
+            {
+                "quantity": 1,
+                "unit": "stk",
+                "name": "ferdig pizzadeig",
+                "type": 2
+            }
         ]
     }
 ]
