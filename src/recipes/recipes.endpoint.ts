@@ -1,10 +1,11 @@
 import { NextFunction, Response, Request, Router } from 'express';
 
+import { uuidv4 } from '../shared/utils';
 import { StatusCodes } from '../shared/status-codes';
 import { IEndpoint } from '../shared/endpoint.interface';
 import { AuthService } from "../auth/auth.service";
 
-import { IRecipe, RECIPES } from './recipe.interface';
+import { Recipe, IRecipe } from './recipe.model';
 
 
 
@@ -18,7 +19,7 @@ export class RecipesEndpoint implements IEndpoint {
         router.get(path + '/', this.authService.isAuthenticated, this.all);
         // router.get('/find', this.authService.isAuthenticated, this.find);
         // router.get('/:id', this.authService.isAuthenticated, this.get);
-        // router.post('/', this.authService.isAuthenticated, this.create);
+        router.post(path + '/', this.authService.isAuthenticated, this.create);
         // router.put('/:id', this.authService.isAuthenticated, this.update);
         // router.delete('/:id', this.authService.isAuthenticated, this.delete);
     }
@@ -36,8 +37,21 @@ export class RecipesEndpoint implements IEndpoint {
         next();
     }
 
+    create = (request: Request, response: Response, next: NextFunction) => {
+        const newRecipe = request.body as IRecipe;
+        
+        newRecipe.guid = uuidv4();
+
+        Recipe.create(newRecipe)
+            .then(result => response.json(result))
+            .catch(error => this.errorHandler(error, response));
+    }
+
     all = (request: Request, response: Response, next: NextFunction) => {
-        response.json(RECIPES);
+        // Recipe.uest, response: Response, next: NextFunction) => {
+        Recipe.find({}).exec()
+            .then(result => response.json(result))
+            .catch(error => this.errorHandler(error, response));
     }
 
 }

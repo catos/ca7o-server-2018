@@ -1,5 +1,5 @@
 import { WORDLIST } from "./wordlist-new";
-import { Utils } from "../shared/utils";
+import { randomElement } from "../shared/utils";
 
 enum WesketchEventType {
     ServerError,
@@ -239,7 +239,7 @@ export class WesketchServer {
         })
 
         // Choose current word
-        this.state.currentWord = Utils.randomElement(WORDLIST);
+        this.state.currentWord = randomElement(WORDLIST);
 
         // Update game state
         this.sendServerEvent(WesketchEventType.UpdateGameState, this.state);

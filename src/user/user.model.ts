@@ -23,9 +23,7 @@ export interface IUser extends mongoose.Document {
     salt: string;
 }
 
-export interface IUserModel extends mongoose.Model<IUser> { }
-
-export const User = mongoose.model<IUser>("User", userSchema) as IUserModel;
+export const User = mongoose.model<IUser>("User", userSchema) as mongoose.Model<IUser>;
 
 /**
  * Seed (manuell atm)

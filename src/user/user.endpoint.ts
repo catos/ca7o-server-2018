@@ -1,10 +1,10 @@
 import { NextFunction, Response, Request, Router } from 'express';
 
+import { uuidv4 } from '../shared/utils';
 import { StatusCodes } from '../shared/status-codes';
 import { IEndpoint } from '../shared/endpoint.interface';
 import { AuthService } from '../auth/auth.service';
 import { IUser, User, UserTypes } from './user.model';
-import { Utils } from '../shared/utils';
 
 
 export class UserEndpoint implements IEndpoint {
@@ -49,7 +49,7 @@ export class UserEndpoint implements IEndpoint {
                         return response.json({ errors: ['Invalid name ' + newUser.name + ', max 16 characters allowed'] });
                     }
 
-                    newUser.guid = Utils.uuidv4();
+                    newUser.guid = uuidv4();
                     newUser.type = UserTypes.Regular;
 
                     const password = newUser.password;
