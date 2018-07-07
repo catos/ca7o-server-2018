@@ -301,19 +301,18 @@ export class WesketchServer {
     resetGame = () => {
         // TODO: reset game
         console.log('reset game!');
-
+        
+        this.state = this.defaultState;
         const players = this.state.players.map(p => {
             p.isReady = false;
             p.score = 0;
             p.drawCount = 0;
             p.isDrawing = false;
             p.guessedWord = false;
+            return p;
         });
         
-        this.state = this.defaultState;
         this.state.players = players;
-
-
 
         this.sendServerEvent(WesketchEventType.SystemMessage, { message: 'Game has been reset' });
         this.sendServerEvent(WesketchEventType.UpdateGameState, this.state);
@@ -414,17 +413,11 @@ class ChangeBrushSize implements IWesketchEventHandler {
     }
 }
 
-// class ResetGame implements IWesketchEventHandler {
-//     handle = (event: IWesketchEvent, server: WesketchServer) => {
-//         const players = server.state.players;
-//         server.state = server.defaultState;
-//         server.state.players = players;
-
-//         server.sendServerEvent(WesketchEventType.SystemMessage, { message: 'Game has been reset' });
-//         server.sendServerEvent(WesketchEventType.UpdateGameState, server.state);
-//         server.sendServerEvent(WesketchEventType.ClearCanvas, {});
-//     }
-// }
+class ResetGame implements IWesketchEventHandler {
+    handle = (event: IWesketchEvent, server: WesketchServer) => {
+        server.resetGame();
+    }
+}
 
 class PauseGame implements IWesketchEventHandler {
     handle = (event: IWesketchEvent, server: WesketchServer) => {
