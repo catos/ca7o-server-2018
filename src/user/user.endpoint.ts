@@ -31,7 +31,6 @@ export class UserEndpoint implements IEndpoint {
     }
 
     init = (request: Request, response: Response, next: NextFunction): void => {
-        console.log('UserEndpoint.init() 2');
         next();
     }
 
@@ -66,7 +65,15 @@ export class UserEndpoint implements IEndpoint {
 
     update = (request: Request, response: Response, next: NextFunction) => {
         const user = request.body as IUser;
-        User.findByIdAndUpdate(request.params.id, user, { new: true }).exec()
+        if (user.password.length < 6) {
+            delete user.password;
+        } else {
+            const password = user.password;
+            user.salt = this.authService.createSalt();
+            user.password = this.authService.hashPassword(password, user.salt);
+        }
+
+        User.findOneAndUpdate({ guid: request.params.id }, user, { new: true }).exec()
             .then(result => response.json(result))
             .catch(error => this.errorHandler(error, response));
     }
@@ -97,7 +104,7 @@ export class UserEndpoint implements IEndpoint {
     }
 
     get = (request: Request, response: Response, next: NextFunction) => {
-        User.findById(request.params.id).exec()
+        User.findOne({ guid: request.params.id }).exec()
             .then(result => response.json(result))
             .catch(error => this.errorHandler(error, response));
     }

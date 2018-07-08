@@ -49,7 +49,8 @@ export class AuthService {
         const payload = {
             'guid': user.guid,
             'name': user.name,
-            'username': user.username
+            'username': user.username,
+            'type': user.type
         };
 
         return jwt.sign(payload, this.secret, { expiresIn: '7d' });
