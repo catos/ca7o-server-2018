@@ -16,6 +16,7 @@ import { WesketchServer } from './wesketch/wesketch-server';
 import { AuthEndpoint } from './auth/auth.endpoint';
 import { UserEndpoint } from './user/user.endpoint'
 import { RecipesEndpoint } from './recipes/recipes.endpoint';
+import { TickerServer } from './ticker/ticker-server';
 
 /**
  * The server.
@@ -25,7 +26,6 @@ import { RecipesEndpoint } from './recipes/recipes.endpoint';
 export class Server {
 
     authService: AuthService
-    wesketchServer: WesketchServer;
     public app: express.Application
 
     /**
@@ -122,7 +122,10 @@ export class Server {
         const io = socketIo(httpServer, { origins: '*:*' })
 
         // Create Wesketch server
-        this.wesketchServer = new WesketchServer(io);
+        new WesketchServer(io);
+
+        // Create Ticker server
+        new TickerServer(io);
 
         // listen on provided ports
         httpServer.listen(port, function () {

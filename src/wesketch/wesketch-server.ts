@@ -67,9 +67,19 @@ interface IWesketchGameState {
  * sendServerEvent: goto method for event-handlers to create events
  */
 export class WesketchServer {
-    private _io: SocketIO.Server;
+    private _io: SocketIO.Namespace;
+
     public state: IWesketchGameState;
-    public defaultState: IWesketchGameState;
+    readonly DEFAULT_STATE: IWesketchGameState = {
+        phase: PhaseTypes.Lobby,
+        players: [],
+        gamePaused: false,
+        round: 0,
+        timeRemaining: 0,
+        currentWord: '',
+        currentColor: '#000000',
+        brushSize: 3
+    };
 
     readonly ROUND_DURATION: number = 10; // 90
     readonly END_ROUND_DURATION: number = 5; // 10
@@ -78,20 +88,14 @@ export class WesketchServer {
     readonly DRAWINGS_PER_PLAYER: number = 3;
     readonly TIMER_DELAY: number = 1000;
 
-    constructor(io: SocketIO.Server) {
-        this._io = io;
+    timerIntervalId: any;
 
-        this.defaultState = {
-            phase: PhaseTypes.Lobby,
-            players: [],
-            gamePaused: false,
-            round: 1,
-            timeRemaining: 0,
-            currentWord: '',
-            currentColor: '#000000',
-            brushSize: 3
-        };
-        this.state = this.defaultState;
+    constructor(io: SocketIO.Server) {
+        this._io = io.of('wesketch');
+
+        this.state = this.DEFAULT_STATE;
+
+        this.timerIntervalId = 0;
 
         this._io.on('connection', (client: SocketIO.Socket) => {
             // console.log('### Client Connected')
@@ -166,44 +170,30 @@ export class WesketchServer {
         this._io.emit('event', event);
     }
 
-    // startTimer = (duration: number, next: () => void) => {
-    //     this.state.timeRemaining = duration;
-
-    //     var self = this;
-    //     this.intervalObj = setInterval(() => {
-    //         console.log('startTime: ' + duration + ', remaining: ' + self.state.timeRemaining);
-    //         if (self.state.timeRemaining <= 0) {
-    //             self.stop = true;
-    //         }
-
-    //         if (self.stop) {
-    //             clearInterval(self.intervalObj);
-
-    //             if (!self.reset) {
-    //                 return next();
-    //             }
-    //         } else {
-    //             self.state.timeRemaining--;
-    //         }
-
-    //         self.sendServerEvent(WesketchEventType.UpdateGameState, self.state);
-    //     }, 1000);
-    // }
-
     startTimer = (duration: number, next: () => void) => {
         this.state.timeRemaining = duration;
-        const intervalId = setInterval(() => {
-            if (!this.state.gamePaused) {
-                this.state.timeRemaining--;
+        this.timerIntervalId = setInterval(() => {
 
-                if (this.state.timeRemaining <= 0) {
-                    clearInterval(intervalId);
-                    console.log('cleared interval! run next()');
-                    next();
-                }
-
-                this.sendServerEvent(WesketchEventType.UpdateGameState, this.state);
+            if (this.state.gamePaused) {
+                return
             }
+
+            if (this.state.phase == PhaseTypes.Lobby ||
+                this.state.phase == PhaseTypes.GameEnd) {
+                return;
+            }
+
+            if (this.state.timeRemaining <= 0) {
+                clearInterval(this.timerIntervalId);
+                console.log('cleared interval! run next()');
+                next();
+                return;
+            }
+
+            this.state.timeRemaining--;
+            console.log('timeRemaining: ' + this.state.timeRemaining);
+            this.sendServerEvent(WesketchEventType.UpdateGameState, this.state);
+
         }, this.TIMER_DELAY);
     }
 
@@ -212,7 +202,7 @@ export class WesketchServer {
         this.state.phase = PhaseTypes.Drawing;
 
         // Increment round counter
-        this.state.round += this.state.round;
+        this.state.round += 1;
 
         // Clear canvas
         this.sendServerEvent(WesketchEventType.ClearCanvas, {});
@@ -234,7 +224,7 @@ export class WesketchServer {
         this.state.players.map(player => {
             if (player.userId == drawingPlayer.userId) {
                 player.isDrawing = true;
-                player.drawCount++;
+                player.drawCount += 1;
             }
         })
 
@@ -245,9 +235,8 @@ export class WesketchServer {
         this.sendServerEvent(WesketchEventType.UpdateGameState, this.state);
 
         // Start timer
-        // new StartTimer().execute(server, new EndRound().execute);
         this.startTimer(this.ROUND_DURATION, this.endRound);
-        this.sendServerEvent(WesketchEventType.SystemMessage, { message: `Round started!` })
+        this.sendServerEvent(WesketchEventType.SystemMessage, { message: `Round ${this.state.round} started!` })
     }
 
     endRound = () => {
@@ -268,6 +257,7 @@ export class WesketchServer {
         // End game if all players have drawn DRAWINGS_PER_PLAYER times each
         if (this.state.players.every(p => p.drawCount === this.DRAWINGS_PER_PLAYER)) {
             this.endGame();
+            return;
         }
 
         // Update game state
@@ -294,16 +284,23 @@ export class WesketchServer {
         this.startTimer(this.END_GAME_DURATION, this.resetGame);
         this.sendServerEvent(
             WesketchEventType.SystemMessage,
-            { message: `Reset game in ${this.END_GAME_DURATION} seconds...` })
+            { message: `Reseting game in ${this.END_GAME_DURATION} seconds...` })
 
     }
 
     resetGame = () => {
-        // TODO: reset game
-        // console.log('reset game!');
-        
-        this.state = this.defaultState;
-        const players = this.state.players.map(p => {
+        clearInterval(this.timerIntervalId);
+
+        // TODO: reset game state needs to use DEFAULT_STATE
+        this.state.phase = PhaseTypes.Lobby;
+        this.state.gamePaused = false;
+        this.state.round = 0;
+        this.state.timeRemaining = 0;
+        this.state.currentWord = '';
+        this.state.currentColor = '#000000';
+        this.state.brushSize = 3;
+
+        this.state.players = this.state.players.map(p => {
             p.isReady = false;
             p.score = 0;
             p.drawCount = 0;
@@ -311,8 +308,6 @@ export class WesketchServer {
             p.guessedWord = false;
             return p;
         });
-        
-        this.state.players = players;
 
         this.sendServerEvent(WesketchEventType.SystemMessage, { message: 'Game has been reset' });
         this.sendServerEvent(WesketchEventType.UpdateGameState, this.state);
