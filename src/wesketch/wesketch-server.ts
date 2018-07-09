@@ -88,14 +88,14 @@ export class WesketchServer {
     readonly DRAWINGS_PER_PLAYER: number = 3;
     readonly TIMER_DELAY: number = 1000;
 
-    timerIntervalId: any;
+    intervalId: any;
 
     constructor(io: SocketIO.Server) {
         this._io = io.of('wesketch');
 
         this.state = this.DEFAULT_STATE;
 
-        this.timerIntervalId = 0;
+        this.intervalId = 0;
 
         this._io.on('connection', (client: SocketIO.Socket) => {
             // console.log('### Client Connected')
@@ -171,27 +171,23 @@ export class WesketchServer {
     }
 
     startTimer = (duration: number, next: () => void) => {
+        console.log('startTimer: ' + duration);
         this.state.timeRemaining = duration;
-        this.timerIntervalId = setInterval(() => {
+        this.intervalId = setInterval(() => {
 
             if (this.state.gamePaused) {
                 return
             }
 
-            if (this.state.phase == PhaseTypes.Lobby ||
-                this.state.phase == PhaseTypes.GameEnd) {
-                return;
-            }
-
             if (this.state.timeRemaining <= 0) {
-                clearInterval(this.timerIntervalId);
-                console.log('cleared interval! run next()');
+                clearInterval(this.intervalId);
+                console.log('startTimer->clearInterval; next()');
                 next();
                 return;
             }
 
             this.state.timeRemaining--;
-            console.log('timeRemaining: ' + this.state.timeRemaining);
+            console.log('timer: ' + this.state.timeRemaining);
             this.sendServerEvent(WesketchEventType.UpdateGameState, this.state);
 
         }, this.TIMER_DELAY);
@@ -289,7 +285,7 @@ export class WesketchServer {
     }
 
     resetGame = () => {
-        clearInterval(this.timerIntervalId);
+        clearInterval(this.intervalId);
 
         // TODO: reset game state needs to use DEFAULT_STATE
         this.state.phase = PhaseTypes.Lobby;
@@ -367,8 +363,8 @@ class PlayerReady implements IWesketchEventHandler {
         });
 
         if (server.state.players.every(p => p.isReady) && server.state.players.length > 1) {
-            server.sendServerEvent(WesketchEventType.SystemMessage, { message: 'All players are ready, starting game!' });
-            server.startRound();
+            server.sendServerEvent(WesketchEventType.SystemMessage, { message: 'All players are ready, starting game in 5 seconds!' });
+            server.startTimer(5, server.startRound);
         }
 
         server.sendServerEvent(WesketchEventType.UpdateGameState, server.state);

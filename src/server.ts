@@ -125,7 +125,7 @@ export class Server {
         new WesketchServer(io);
 
         // Create Ticker server
-        new TickerServer(io);
+        // new TickerServer(io);
 
         // listen on provided ports
         httpServer.listen(port, function () {
