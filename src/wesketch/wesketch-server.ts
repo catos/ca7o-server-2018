@@ -81,6 +81,8 @@ export class WesketchServer {
         brushSize: 3
     };
 
+    readonly GUESS_SCORE: number = 10;
+
     readonly ROUND_DURATION: number = 10; // 90
     readonly END_ROUND_DURATION: number = 5; // 10
     readonly END_GAME_DURATION: number = 10; // 60
@@ -374,6 +376,35 @@ class PlayerReady implements IWesketchEventHandler {
 class Message implements IWesketchEventHandler {
     handle = (event: IWesketchEvent, server: WesketchServer) => {
         server.sendEvent(event);
+
+        // Check if someone guessed the word
+        const guessedWord = event.value.message.toLowerCase() === server.state.currentWord.toLowerCase();
+        if (server.state.phase === PhaseTypes.Drawing && guessedWord) {
+
+            let player = server.state.players
+                .find(p => p.userId === event.userId);
+            // Check if player alreacy has guessed it
+            if (player.guessedWord) {
+                return;
+            }
+
+            const finishedPlayersCount = server.state.players.reduce((n, player) => {
+                return (player.guessedWord && !player.isDrawing)
+                    ? n + 1
+                    : n;
+            }, 0)
+            console.log('finishedPlayers: ', finishedPlayersCount);
+
+
+            // Send message to clients
+            server.sendServerEvent(WesketchEventType.SystemMessage, {
+                message: `${event.userName} guessed the word!`
+            });
+
+            // Update player score
+            player.score += server.GUESS_SCORE - finishedPlayersCount;
+            player.guessedWord = true;
+        }
     }
 }
 
