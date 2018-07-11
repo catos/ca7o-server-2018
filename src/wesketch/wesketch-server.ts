@@ -11,6 +11,7 @@ enum WesketchEventType {
     StartDraw,
     Draw,
     StopDraw,
+    GiveUp,
     ClearCanvas,
     ChangeColor,
     ChangeBrushSize,
@@ -83,9 +84,9 @@ export class WesketchServer {
 
     readonly GUESS_SCORE: number = 10;
 
-    readonly ROUND_DURATION: number = 10; // 90
-    readonly END_ROUND_DURATION: number = 5; // 10
-    readonly END_GAME_DURATION: number = 10; // 60
+    readonly ROUND_DURATION: number = 90; // 90
+    readonly END_ROUND_DURATION: number = 10; // 10
+    readonly END_GAME_DURATION: number = 60; // 60
 
     readonly DRAWINGS_PER_PLAYER: number = 3;
     readonly TIMER_DELAY: number = 1000;
@@ -130,6 +131,9 @@ export class WesketchServer {
                 break;
             case WesketchEventType.Draw:
                 new Draw().handle(event, this);
+                break;
+            case WesketchEventType.GiveUp:
+                new GiveUp().handle(event, this);
                 break;
             case WesketchEventType.ClearCanvas:
                 new ClearCanvas().handle(event, this);
@@ -383,18 +387,10 @@ class Message implements IWesketchEventHandler {
 
             let player = server.state.players
                 .find(p => p.userId === event.userId);
-            // Check if player alreacy has guessed it
+            // Check if player already has guessed it
             if (player.guessedWord) {
                 return;
             }
-
-            const finishedPlayersCount = server.state.players.reduce((n, player) => {
-                return (player.guessedWord && !player.isDrawing)
-                    ? n + 1
-                    : n;
-            }, 0)
-            console.log('finishedPlayers: ', finishedPlayersCount);
-
 
             // Send message to clients
             server.sendServerEvent(WesketchEventType.SystemMessage, {
@@ -402,8 +398,42 @@ class Message implements IWesketchEventHandler {
             });
 
             // Update player score
-            player.score += server.GUESS_SCORE - finishedPlayersCount;
+            const finishedPlayersCount = server.state.players.reduce((n, player) => {
+                return (player.guessedWord && !player.isDrawing)
+                    ? n + 1
+                    : n;
+            }, 0);
+            const score = server.GUESS_SCORE - finishedPlayersCount;
+            server.sendServerEvent(WesketchEventType.SystemMessage, {
+                message: `*** DEBUG finishedPlayersCount: ${finishedPlayersCount}, score: ${score}`
+            });
+            player.score += score;
             player.guessedWord = true;
+
+
+            // Check if all non-drawing players guessed the word
+            const playersRemaining = server.state.players.reduce((n, player) => {
+                return (!player.guessedWord && !player.isDrawing)
+                    ? n + 1
+                    : n;
+            }, 0);
+            if (playersRemaining === 0) {
+                server.state.timeRemaining = 0;
+                server.sendServerEvent(WesketchEventType.SystemMessage, {
+                    message: `All players guessed the word!`
+                });
+            }
+
+            // TODO: Reduce timer after first guess
+            const firstGuess = finishedPlayersCount === 0;
+            if (firstGuess && server.state.timeRemaining > 30) {
+                server.state.timeRemaining = 30;
+                server.sendServerEvent(WesketchEventType.SystemMessage, {
+                    message: `*** DEBUG First player guessed the word, and timer has been reduced!`
+                });
+            }
+
+            server.sendServerEvent(WesketchEventType.UpdateGameState, server.state);
         }
     }
 }
@@ -411,6 +441,16 @@ class Message implements IWesketchEventHandler {
 class Draw implements IWesketchEventHandler {
     handle = (event: IWesketchEvent, server: WesketchServer) => {
         server.sendEvent(event);
+    }
+}
+
+class GiveUp implements IWesketchEventHandler {
+    handle = (event: IWesketchEvent, server: WesketchServer) => {
+        server.state.timeRemaining = 0;
+
+        server.sendServerEvent(WesketchEventType.SystemMessage, {
+            message: `${event.userName} gave up trying to draw the stupid word`
+        });
     }
 }
 
