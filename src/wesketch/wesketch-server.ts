@@ -1,8 +1,9 @@
 import { WORDLIST } from "./wordlist-new";
-import { randomElement } from "../shared/utils";
+import { randomElement, wordsAreClose } from "../shared/utils";
 
 enum WesketchEventType {
     ServerError,
+    ToggleDebugMode,
     PlayerJoined,
     PlayerLeft,
     PlayerReady,
@@ -49,6 +50,7 @@ interface IPlayer {
 }
 
 interface IWesketchGameState {
+    debugMode: boolean;
     phase: PhaseTypes,
     players: IPlayer[],
 
@@ -72,6 +74,7 @@ export class WesketchServer {
 
     public state: IWesketchGameState;
     readonly DEFAULT_STATE: IWesketchGameState = {
+        debugMode: false,
         phase: PhaseTypes.Lobby,
         players: [],
         gamePaused: false,
@@ -83,6 +86,7 @@ export class WesketchServer {
     };
 
     readonly GUESS_SCORE: number = 10;
+    readonly FIRST_GUESS_TIME_REMAINING: number = 30;
 
     readonly ROUND_DURATION: number = 90; // 90
     readonly END_ROUND_DURATION: number = 10; // 10
@@ -117,6 +121,8 @@ export class WesketchServer {
 
     handleEvent(event: IWesketchEvent) {
         switch (event.type) {
+            case WesketchEventType.ToggleDebugMode:
+                new ToggleDebugMode().handle(event, this);
             case WesketchEventType.PlayerJoined:
                 new PlayerJoined().handle(event, this);
                 break;
@@ -177,7 +183,6 @@ export class WesketchServer {
     }
 
     startTimer = (duration: number, next: () => void) => {
-        console.log('startTimer: ' + duration);
         this.state.timeRemaining = duration;
         this.intervalId = setInterval(() => {
 
@@ -187,13 +192,11 @@ export class WesketchServer {
 
             if (this.state.timeRemaining <= 0) {
                 clearInterval(this.intervalId);
-                console.log('startTimer->clearInterval; next()');
                 next();
                 return;
             }
 
             this.state.timeRemaining--;
-            console.log('timer: ' + this.state.timeRemaining);
             this.sendServerEvent(WesketchEventType.UpdateGameState, this.state);
 
         }, this.TIMER_DELAY);
@@ -379,14 +382,12 @@ class PlayerReady implements IWesketchEventHandler {
 
 class Message implements IWesketchEventHandler {
     handle = (event: IWesketchEvent, server: WesketchServer) => {
-        server.sendEvent(event);
 
-        // Check if someone guessed the word
+        // Someone guessed the word
         const guessedWord = event.value.message.toLowerCase() === server.state.currentWord.toLowerCase();
         if (server.state.phase === PhaseTypes.Drawing && guessedWord) {
 
-            let player = server.state.players
-                .find(p => p.userId === event.userId);
+            let player = server.state.players.find(p => p.userId === event.userId);
             // Check if player already has guessed it
             if (player.guessedWord) {
                 return;
@@ -404,9 +405,6 @@ class Message implements IWesketchEventHandler {
                     : n;
             }, 0);
             const score = server.GUESS_SCORE - finishedPlayersCount;
-            server.sendServerEvent(WesketchEventType.SystemMessage, {
-                message: `*** DEBUG finishedPlayersCount: ${finishedPlayersCount}, score: ${score}`
-            });
             player.score += score;
             player.guessedWord = true;
 
@@ -424,17 +422,27 @@ class Message implements IWesketchEventHandler {
                 });
             }
 
-            // TODO: Reduce timer after first guess
+            // Reduce timer after first guess
             const firstGuess = finishedPlayersCount === 0;
-            if (firstGuess && server.state.timeRemaining > 30) {
-                server.state.timeRemaining = 30;
-                server.sendServerEvent(WesketchEventType.SystemMessage, {
-                    message: `*** DEBUG First player guessed the word, and timer has been reduced!`
-                });
+            if (firstGuess && server.state.timeRemaining > server.FIRST_GUESS_TIME_REMAINING) {
+                server.state.timeRemaining = server.FIRST_GUESS_TIME_REMAINING;
             }
 
             server.sendServerEvent(WesketchEventType.UpdateGameState, server.state);
+            return;
         }
+
+        // Someone is close
+        const guessIsClose = wordsAreClose(event.value.message, server.state.currentWord);
+        if (server.state.phase === PhaseTypes.Drawing && guessIsClose) {
+            server.sendServerEvent(WesketchEventType.SystemMessage, {
+                message: `${event.userName} is close...`
+            });
+            return;
+        }
+
+        // Bounce event if not correct or close
+        server.sendEvent(event);
     }
 }
 
@@ -493,3 +501,17 @@ class PauseGame implements IWesketchEventHandler {
         server.sendServerEvent(WesketchEventType.UpdateGameState, server.state);
     }
 }
+
+class ToggleDebugMode implements IWesketchEventHandler {
+    handle(event: IWesketchEvent, server: WesketchServer): void {
+        server.state.debugMode = !server.state.debugMode;
+
+        const message = server.state.debugMode
+            ? 'game is in debug mode'
+            : 'game is no longer in debug mode';
+
+        server.sendServerEvent(WesketchEventType.SystemMessage, { message });
+        server.sendServerEvent(WesketchEventType.UpdateGameState, server.state);
+    }
+}
+
