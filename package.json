@@ -9,7 +9,8 @@
         "watch:build": "tsc -w",
         "watch:server": "nodemon dist/server.js",
         "dev": "npm-run-all clean build --parallel watch:build watch:server --print-label",
-        "start": "node ./dist/server.js"
+        "start": "node ./dist/server.js",
+        "postinstall": "npm run build"
     },
     "keywords": [],
     "author": "",
