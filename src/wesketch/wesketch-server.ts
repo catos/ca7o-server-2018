@@ -59,7 +59,8 @@ interface IWesketchGameState {
     timeRemaining: number;
     currentWord: string;
 
-    currentColor: string;
+    primaryColor: string;
+    secondaryColor: string;
     brushSize: number;
 }
 
@@ -81,7 +82,8 @@ export class WesketchServer {
         round: 0,
         timeRemaining: 0,
         currentWord: '',
-        currentColor: '#000000',
+        primaryColor: '#000000',
+        secondaryColor: '#ffffff',
         brushSize: 3
     };
 
@@ -302,7 +304,7 @@ export class WesketchServer {
         this.state.round = 0;
         this.state.timeRemaining = 0;
         this.state.currentWord = '';
-        this.state.currentColor = '#000000';
+        this.state.primaryColor = '#000000';
         this.state.brushSize = 3;
 
         this.state.players = this.state.players.map(p => {
@@ -471,7 +473,7 @@ class ClearCanvas implements IWesketchEventHandler {
 // TODO: group these events into ChangeDrawSettings ?
 class ChangeColor implements IWesketchEventHandler {
     handle = (event: IWesketchEvent, server: WesketchServer) => {
-        server.state.currentColor = event.value;
+        server.state.primaryColor = event.value;
         server.sendServerEvent(WesketchEventType.UpdateGameState, server.state);
     }
 }
