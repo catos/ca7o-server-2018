@@ -360,7 +360,7 @@ class PlayerLeft implements IWesketchEventHandler {
     handle = (event: IWesketchEvent, server: WesketchServer) => {
         server.state.players = server.state.players.filter(p => p.userId !== event.userId)
 
-        server.sendServerEvent(WesketchEventType.SystemMessage, { message: `Player left the game` });
+        server.sendServerEvent(WesketchEventType.SystemMessage, { message: `${event.userName} left the game` });
         server.sendServerEvent(WesketchEventType.UpdateGameState, server.state);
     }
 }
