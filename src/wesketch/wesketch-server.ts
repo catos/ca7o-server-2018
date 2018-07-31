@@ -49,6 +49,11 @@ interface IPlayer {
     guessedWord: boolean;
 }
 
+interface ITimer {
+    remaining: number;
+    duration: number;
+}
+
 interface IWesketchGameState {
     debugMode: boolean;
     phase: PhaseTypes,
@@ -56,7 +61,7 @@ interface IWesketchGameState {
 
     gamePaused: boolean;
     round: number;
-    timeRemaining: number;
+    timer: ITimer;
     currentWord: string;
 
     primaryColor: string;
@@ -80,7 +85,10 @@ export class WesketchServer {
         players: [],
         gamePaused: false,
         round: 0,
-        timeRemaining: 0,
+        timer: {
+            remaining: 0,
+            duration: 0
+        },
         currentWord: '',
         primaryColor: '#000000',
         secondaryColor: '#ffffff',
@@ -185,20 +193,22 @@ export class WesketchServer {
     }
 
     startTimer = (duration: number, next: () => void) => {
-        this.state.timeRemaining = duration;
+        const { timer } = this.state;
+        timer.duration = duration;
+        timer.remaining = duration;
         this.intervalId = setInterval(() => {
 
             if (this.state.gamePaused) {
                 return
             }
 
-            if (this.state.timeRemaining <= 0) {
+            if (timer.remaining <= 0) {
                 clearInterval(this.intervalId);
                 next();
                 return;
             }
 
-            this.state.timeRemaining--;
+            timer.remaining--;
             this.sendServerEvent(WesketchEventType.UpdateGameState, this.state);
 
         }, this.TIMER_DELAY);
@@ -302,7 +312,7 @@ export class WesketchServer {
         this.state.phase = PhaseTypes.Lobby;
         this.state.gamePaused = false;
         this.state.round = 0;
-        this.state.timeRemaining = 0;
+        this.state.timer.remaining = 0;
         this.state.currentWord = '';
         this.state.primaryColor = '#000000';
         this.state.brushSize = 3;
@@ -418,7 +428,7 @@ class Message implements IWesketchEventHandler {
                     : n;
             }, 0);
             if (playersRemaining === 0) {
-                server.state.timeRemaining = 0;
+                server.state.timer.remaining = 0;
                 server.sendServerEvent(WesketchEventType.SystemMessage, {
                     message: `All players guessed the word!`
                 });
@@ -426,8 +436,8 @@ class Message implements IWesketchEventHandler {
 
             // Reduce timer after first guess
             const firstGuess = finishedPlayersCount === 0;
-            if (firstGuess && server.state.timeRemaining > server.FIRST_GUESS_TIME_REMAINING) {
-                server.state.timeRemaining = server.FIRST_GUESS_TIME_REMAINING;
+            if (firstGuess && server.state.timer.remaining > server.FIRST_GUESS_TIME_REMAINING) {
+                server.state.timer.remaining = server.FIRST_GUESS_TIME_REMAINING;
             }
 
             server.sendServerEvent(WesketchEventType.UpdateGameState, server.state);
@@ -456,7 +466,7 @@ class Draw implements IWesketchEventHandler {
 
 class GiveUp implements IWesketchEventHandler {
     handle = (event: IWesketchEvent, server: WesketchServer) => {
-        server.state.timeRemaining = 0;
+        server.state.timer.remaining = 0;
 
         server.sendServerEvent(WesketchEventType.SystemMessage, {
             message: `${event.userName} gave up trying to draw the stupid word`
