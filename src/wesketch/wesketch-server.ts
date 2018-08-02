@@ -59,7 +59,7 @@ interface IWesketchGameState {
     phase: PhaseTypes,
     players: IPlayer[],
 
-    gamePaused: boolean;
+    paused: boolean;
     round: number;
     timer: ITimer;
     currentWord: string;
@@ -83,7 +83,7 @@ export class WesketchServer {
         debugMode: false,
         phase: PhaseTypes.Lobby,
         players: [],
-        gamePaused: false,
+        paused: false,
         round: 0,
         timer: {
             remaining: 0,
@@ -198,7 +198,7 @@ export class WesketchServer {
         timer.remaining = duration;
         this.intervalId = setInterval(() => {
 
-            if (this.state.gamePaused) {
+            if (this.state.paused) {
                 return
             }
 
@@ -310,7 +310,7 @@ export class WesketchServer {
 
         // TODO: reset game state needs to use DEFAULT_STATE
         this.state.phase = PhaseTypes.Lobby;
-        this.state.gamePaused = false;
+        this.state.paused = false;
         this.state.round = 0;
         this.state.timer.remaining = 0;
         this.state.currentWord = '';
@@ -503,9 +503,9 @@ class ResetGame implements IWesketchEventHandler {
 
 class PauseGame implements IWesketchEventHandler {
     handle = (event: IWesketchEvent, server: WesketchServer) => {
-        server.state.gamePaused = !server.state.gamePaused;
+        server.state.paused = !server.state.paused;
 
-        const message = server.state.gamePaused
+        const message = server.state.paused
             ? 'Game has been paused'
             : 'Game has been un-paused';
 
