@@ -368,6 +368,12 @@ class PlayerLeft implements IWesketchEventHandler {
 
 class PlayerReady implements IWesketchEventHandler {
     handle = (event: IWesketchEvent, server: WesketchServer) => {
+
+        // Toggle ready is only avaliable in Lobby-phase
+        if (server.state.phase !== PhaseTypes.Lobby) {
+            return;
+        }
+
         server.state.players.forEach(p => {
             if (p.userId === event.userId) {
                 p.isReady = !p.isReady;
@@ -385,12 +391,18 @@ class PlayerReady implements IWesketchEventHandler {
 
 class Message implements IWesketchEventHandler {
     handle = (event: IWesketchEvent, server: WesketchServer) => {
+        let player = server.state.players.find(p => p.userId === event.userId);
+
+        // Drawing player is not allowed to guess or talk during draw-phase
+        if (player.isDrawing) {
+            return;
+        }
 
         // Someone guessed the word
         const guessedWord = event.value.message.toLowerCase() === server.state.currentWord.toLowerCase();
         if (server.state.phase === PhaseTypes.Drawing && guessedWord) {
 
-            let player = server.state.players.find(p => p.userId === event.userId);
+            
             // Check if player already has guessed it
             if (player.guessedWord) {
                 return;
@@ -443,7 +455,7 @@ class Message implements IWesketchEventHandler {
             });
             return;
         }
-
+        
         // Bounce event if not correct or close
         server.sendEvent(event);
     }
