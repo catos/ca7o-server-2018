@@ -10,11 +10,17 @@ export const randomElement = (array: any[]) => {
     return array[Math.floor(Math.random() * array.length)];
 }
 
-export const wordsAreClose = (word1: string, word2: string): boolean => {
-    word1 = word1.toLowerCase();
-    word2 = word2.toLowerCase();
-    if (word1.length >= (word2.length - 2) && word2.indexOf(word1) > -1) {        
-        return true;
+// MEAN
+// Close: ME, MEA, MEAN*, MEAN**
+export const guessIsClose = (guess: string, word: string): boolean => {
+    guess = guess.toLowerCase();
+    word = word.toLowerCase();
+
+    if (Math.abs(guess.length - word.length) <= 2) {
+        if (word.indexOf(guess) > -1 || guess.indexOf(word) > -1) {
+            return true;
+        }
     }
+
     return false;
 }

@@ -1,5 +1,5 @@
 import { WORDLIST } from "./wordlist-new";
-import { randomElement, wordsAreClose } from "../shared/utils";
+import { randomElement, guessIsClose } from "../shared/utils";
 
 enum WesketchEventType {
     ServerError,
@@ -18,7 +18,6 @@ enum WesketchEventType {
     ChangeBrushSize,
     UpdateGameState,
     ResetGame,
-    PauseGame,
     ShowScores
 }
 
@@ -59,7 +58,7 @@ interface IWesketchGameState {
     phase: PhaseTypes,
     players: IPlayer[],
 
-    paused: boolean;
+    stop: boolean;
     round: number;
     timer: ITimer;
     currentWord: string;
@@ -83,7 +82,7 @@ export class WesketchServer {
         debugMode: false,
         phase: PhaseTypes.Lobby,
         players: [],
-        paused: false,
+        stop: false,
         round: 0,
         timer: {
             remaining: 0,
@@ -98,9 +97,9 @@ export class WesketchServer {
     readonly GUESS_SCORE: number = 10;
     readonly FIRST_GUESS_TIME_REMAINING: number = 30;
 
-    readonly ROUND_DURATION: number = 90; // 90
-    readonly END_ROUND_DURATION: number = 10; // 10
-    readonly END_GAME_DURATION: number = 60; // 60
+    readonly START_ROUND_DURATION: number = 3;
+    readonly ROUND_DURATION: number = 90;
+    readonly END_ROUND_DURATION: number = 10;
 
     readonly DRAWINGS_PER_PLAYER: number = 3;
     readonly TIMER_DELAY: number = 1000;
@@ -163,9 +162,6 @@ export class WesketchServer {
             case WesketchEventType.ResetGame:
                 new ResetGame().handle(event, this);
                 break;
-            case WesketchEventType.PauseGame:
-                new PauseGame().handle(event, this);
-                break;
             default:
                 this.sendServerEvent(WesketchEventType.ServerError,
                     {
@@ -197,10 +193,7 @@ export class WesketchServer {
         timer.duration = duration;
         timer.remaining = duration;
         this.intervalId = setInterval(() => {
-
-            if (this.state.paused) {
-                return
-            }
+            // this.sendServerEvent(WesketchEventType.SystemMessage, { message: `Timer ticked - remaining: ${timer.remaining}` });
 
             if (timer.remaining <= 0) {
                 clearInterval(this.intervalId);
@@ -210,7 +203,6 @@ export class WesketchServer {
 
             timer.remaining--;
             this.sendServerEvent(WesketchEventType.UpdateGameState, this.state);
-
         }, this.TIMER_DELAY);
     }
 
@@ -297,12 +289,11 @@ export class WesketchServer {
         // Show scores
         this.sendServerEvent(WesketchEventType.ShowScores, {});
 
-        // Reset game in X seconds
-        this.startTimer(this.END_GAME_DURATION, this.resetGame);
+        // TODO: Reset game when all players are ready
+        // this.startTimer(this.END_GAME_DURATION, this.resetGame);
         this.sendServerEvent(
             WesketchEventType.SystemMessage,
-            { message: `Reseting game in ${this.END_GAME_DURATION} seconds...` })
-
+            { message: `Game ended....TODO, show summary in chat ?` });
     }
 
     resetGame = () => {
@@ -310,7 +301,7 @@ export class WesketchServer {
 
         // TODO: reset game state needs to use DEFAULT_STATE
         this.state.phase = PhaseTypes.Lobby;
-        this.state.paused = false;
+        this.state.stop = false;
         this.state.round = 0;
         this.state.timer.remaining = 0;
         this.state.currentWord = '';
@@ -384,8 +375,8 @@ class PlayerReady implements IWesketchEventHandler {
         });
 
         if (server.state.players.every(p => p.isReady) && server.state.players.length > 1) {
-            server.sendServerEvent(WesketchEventType.SystemMessage, { message: 'All players are ready, starting game in 5 seconds!' });
-            server.startTimer(5, server.startRound);
+            server.sendServerEvent(WesketchEventType.SystemMessage, { message: `All players are ready, starting game in ${server.START_ROUND_DURATION} seconds!` });
+            server.startTimer(server.START_ROUND_DURATION, server.startRound);
         }
 
         server.sendServerEvent(WesketchEventType.UpdateGameState, server.state);
@@ -445,8 +436,8 @@ class Message implements IWesketchEventHandler {
         }
 
         // Someone is close
-        const guessIsClose = wordsAreClose(event.value.message, server.state.currentWord);
-        if (server.state.phase === PhaseTypes.Drawing && guessIsClose) {
+        const isClose = guessIsClose(event.value.message, server.state.currentWord);
+        if (server.state.phase === PhaseTypes.Drawing && isClose) {
             server.sendServerEvent(WesketchEventType.SystemMessage, {
                 message: `${event.userName} is close...`
             });
@@ -484,7 +475,10 @@ class ClearCanvas implements IWesketchEventHandler {
 class ChangeColor implements IWesketchEventHandler {
     handle = (event: IWesketchEvent, server: WesketchServer) => {
         server.state.primaryColor = event.value;
-        server.sendServerEvent(WesketchEventType.UpdateGameState, server.state);
+        server.sendServerEvent(WesketchEventType.SystemMessage, {
+            message: `Changed color to ${event.value}`
+        });
+ server.sendServerEvent(WesketchEventType.UpdateGameState, server.state);
     }
 }
 
@@ -498,19 +492,6 @@ class ChangeBrushSize implements IWesketchEventHandler {
 class ResetGame implements IWesketchEventHandler {
     handle = (event: IWesketchEvent, server: WesketchServer) => {
         server.resetGame();
-    }
-}
-
-class PauseGame implements IWesketchEventHandler {
-    handle = (event: IWesketchEvent, server: WesketchServer) => {
-        server.state.paused = !server.state.paused;
-
-        const message = server.state.paused
-            ? 'Game has been paused'
-            : 'Game has been un-paused';
-
-        server.sendServerEvent(WesketchEventType.SystemMessage, { message });
-        server.sendServerEvent(WesketchEventType.UpdateGameState, server.state);
     }
 }
 
