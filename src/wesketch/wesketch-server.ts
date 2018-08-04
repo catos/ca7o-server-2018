@@ -215,6 +215,11 @@ export class WesketchServer {
         // Clear canvas
         this.sendServerEvent(WesketchEventType.ClearCanvas, {});
 
+        // Reset drawing tools
+        this.state.primaryColor = WesketchServer.DEFAULT_STATE.primaryColor;
+        this.state.secondaryColor = WesketchServer.DEFAULT_STATE.secondaryColor;
+        this.state.brushSize = WesketchServer.DEFAULT_STATE.brushSize;
+
         // Choose drawing player
         const sortedPlayers = this.state.players.sort((a, b) => {
             if (a.drawCount > b.drawCount) {
@@ -394,7 +399,6 @@ class Message implements IWesketchEventHandler {
         const guessedWord = event.value.message.toLowerCase() === server.state.currentWord.toLowerCase();
         if (server.state.phase === PhaseTypes.Drawing && guessedWord) {
 
-
             // Check if player already has guessed it
             if (player.guessedWord) {
                 return;
@@ -411,10 +415,15 @@ class Message implements IWesketchEventHandler {
                     ? n + 1
                     : n;
             }, 0);
+            const firstGuess = finishedPlayersCount === 0;
             const score = server.GUESS_SCORE - finishedPlayersCount;
             player.score += score;
             player.guessedWord = true;
 
+            // Update drawing player score
+            let drawingPlayer = server.state.players.find(p => p.isDrawing);
+            const drawingPlayerScore = firstGuess ? 10 : 1;
+            drawingPlayer.score += drawingPlayerScore;
 
             // Check if all non-drawing players guessed the word
             const playersRemaining = server.state.players.reduce((n, player) => {
@@ -430,7 +439,6 @@ class Message implements IWesketchEventHandler {
             }
 
             // Reduce timer after first guess
-            const firstGuess = finishedPlayersCount === 0;
             if (firstGuess && server.state.timer.remaining > server.FIRST_GUESS_TIME_REMAINING) {
                 server.state.timer.remaining = server.FIRST_GUESS_TIME_REMAINING;
             }
