@@ -78,7 +78,7 @@ export class WesketchServer {
     private _io: SocketIO.Namespace;
 
     public state: IWesketchGameState;
-    readonly DEFAULT_STATE: IWesketchGameState = {
+    static DEFAULT_STATE: IWesketchGameState = {
         debugMode: false,
         phase: PhaseTypes.Lobby,
         players: [],
@@ -109,7 +109,7 @@ export class WesketchServer {
     constructor(io: SocketIO.Server) {
         this._io = io.of('wesketch');
 
-        this.state = this.DEFAULT_STATE;
+        this.state = JSON.parse(JSON.stringify(WesketchServer.DEFAULT_STATE));
 
         this.intervalId = 0;
 
@@ -125,7 +125,6 @@ export class WesketchServer {
                 // console.log('### Client Disconnected')
             })
         });
-
     }
 
     handleEvent(event: IWesketchEvent) {
@@ -299,16 +298,7 @@ export class WesketchServer {
     resetGame = () => {
         clearInterval(this.intervalId);
 
-        // TODO: reset game state needs to use DEFAULT_STATE
-        this.state.phase = PhaseTypes.Lobby;
-        this.state.stop = false;
-        this.state.round = 0;
-        this.state.timer.remaining = 0;
-        this.state.currentWord = '';
-        this.state.primaryColor = '#000000';
-        this.state.brushSize = 3;
-
-        this.state.players = this.state.players.map(p => {
+        const players = this.state.players.map(p => {
             p.isReady = false;
             p.score = 0;
             p.drawCount = 0;
@@ -316,7 +306,9 @@ export class WesketchServer {
             p.guessedWord = false;
             return p;
         });
-
+        this.state = JSON.parse(JSON.stringify(WesketchServer.DEFAULT_STATE));
+        this.state.players = players;
+        
         this.sendServerEvent(WesketchEventType.SystemMessage, { message: 'Game has been reset' });
         this.sendServerEvent(WesketchEventType.UpdateGameState, this.state);
         this.sendServerEvent(WesketchEventType.ClearCanvas, {});
@@ -402,7 +394,7 @@ class Message implements IWesketchEventHandler {
         const guessedWord = event.value.message.toLowerCase() === server.state.currentWord.toLowerCase();
         if (server.state.phase === PhaseTypes.Drawing && guessedWord) {
 
-            
+
             // Check if player already has guessed it
             if (player.guessedWord) {
                 return;
@@ -455,7 +447,7 @@ class Message implements IWesketchEventHandler {
             });
             return;
         }
-        
+
         // Bounce event if not correct or close
         server.sendEvent(event);
     }
@@ -490,7 +482,7 @@ class ChangeColor implements IWesketchEventHandler {
         server.sendServerEvent(WesketchEventType.SystemMessage, {
             message: `Changed color to ${event.value}`
         });
- server.sendServerEvent(WesketchEventType.UpdateGameState, server.state);
+        server.sendServerEvent(WesketchEventType.UpdateGameState, server.state);
     }
 }
 
