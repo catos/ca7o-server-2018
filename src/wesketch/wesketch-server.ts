@@ -13,6 +13,7 @@ enum WesketchEventType {
     Draw,
     StopDraw,
     GiveUp,
+    GiveHint,
     ClearCanvas,
     ChangeColor,
     ChangeBrushSize,
@@ -62,6 +63,7 @@ interface IWesketchGameState {
     round: number;
     timer: ITimer;
     currentWord: string;
+    hintsGiven: number;
 
     primaryColor: string;
     secondaryColor: string;
@@ -89,11 +91,13 @@ export class WesketchServer {
             duration: 0
         },
         currentWord: '',
+        hintsGiven: 0,
         primaryColor: '#000000',
         secondaryColor: '#ffffff',
         brushSize: 3
     };
 
+    readonly MAX_HINTS_ALLOWED: number = 3;
     readonly GUESS_SCORE: number = 10;
     readonly FIRST_GUESS_TIME_REMAINING: number = 30;
 
@@ -148,6 +152,9 @@ export class WesketchServer {
                 break;
             case WesketchEventType.GiveUp:
                 new GiveUp().handle(event, this);
+                break;
+            case WesketchEventType.GiveHint:
+                new GiveHint().handle(event, this);
                 break;
             case WesketchEventType.ClearCanvas:
                 new ClearCanvas().handle(event, this);
@@ -256,6 +263,9 @@ export class WesketchServer {
         // Set phase to endRound
         this.state.phase = PhaseTypes.RoundEnd;
 
+        // Reset hints
+        this.state.hintsGiven = 0;
+
         // Show last word to players
         this.sendServerEvent(
             WesketchEventType.SystemMessage,
@@ -313,7 +323,7 @@ export class WesketchServer {
         });
         this.state = JSON.parse(JSON.stringify(WesketchServer.DEFAULT_STATE));
         this.state.players = players;
-        
+
         this.sendServerEvent(WesketchEventType.SystemMessage, { message: 'Game has been reset' });
         this.sendServerEvent(WesketchEventType.UpdateGameState, this.state);
         this.sendServerEvent(WesketchEventType.ClearCanvas, {});
@@ -388,7 +398,8 @@ class PlayerReady implements IWesketchEventHandler {
 
 class Message implements IWesketchEventHandler {
     handle = (event: IWesketchEvent, server: WesketchServer) => {
-        let player = server.state.players.find(p => p.userId === event.userId);
+        const { state } = server;
+        let player = state.players.find(p => p.userId === event.userId);
 
         // Drawing player is not allowed to guess or talk during draw-phase
         if (player.isDrawing) {
@@ -396,8 +407,8 @@ class Message implements IWesketchEventHandler {
         }
 
         // Someone guessed the word
-        const guessedWord = event.value.message.toLowerCase() === server.state.currentWord.toLowerCase();
-        if (server.state.phase === PhaseTypes.Drawing && guessedWord) {
+        const guessedWord = event.value.message.toLowerCase() === state.currentWord.toLowerCase();
+        if (state.phase === PhaseTypes.Drawing && guessedWord) {
 
             // Check if player already has guessed it
             if (player.guessedWord) {
@@ -410,7 +421,7 @@ class Message implements IWesketchEventHandler {
             });
 
             // Update player score
-            const finishedPlayersCount = server.state.players.reduce((n, player) => {
+            const finishedPlayersCount = state.players.reduce((n, player) => {
                 return (player.guessedWord && !player.isDrawing)
                     ? n + 1
                     : n;
@@ -421,26 +432,28 @@ class Message implements IWesketchEventHandler {
             player.guessedWord = true;
 
             // Update drawing player score
-            let drawingPlayer = server.state.players.find(p => p.isDrawing);
-            const drawingPlayerScore = firstGuess ? 10 : 1;
-            drawingPlayer.score += drawingPlayerScore;
+            let drawingPlayer = state.players.find(p => p.isDrawing);
+            let drawScore = firstGuess 
+                ? 10 - (3 * state.hintsGiven)
+                : 1;
+            drawingPlayer.score += drawScore;
 
             // Check if all non-drawing players guessed the word
-            const playersRemaining = server.state.players.reduce((n, player) => {
+            const playersRemaining = state.players.reduce((n, player) => {
                 return (!player.guessedWord && !player.isDrawing)
                     ? n + 1
                     : n;
             }, 0);
             if (playersRemaining === 0) {
-                server.state.timer.remaining = 0;
+                state.timer.remaining = 0;
                 server.sendServerEvent(WesketchEventType.SystemMessage, {
                     message: `All players guessed the word!`
                 });
             }
 
             // Reduce timer after first guess
-            if (firstGuess && server.state.timer.remaining > server.FIRST_GUESS_TIME_REMAINING) {
-                server.state.timer.remaining = server.FIRST_GUESS_TIME_REMAINING;
+            if (firstGuess && state.timer.remaining > server.FIRST_GUESS_TIME_REMAINING) {
+                state.timer.remaining = server.FIRST_GUESS_TIME_REMAINING;
             }
 
             server.sendServerEvent(WesketchEventType.UpdateGameState, server.state);
@@ -448,8 +461,8 @@ class Message implements IWesketchEventHandler {
         }
 
         // Someone is close
-        const isClose = guessIsClose(event.value.message, server.state.currentWord);
-        if (server.state.phase === PhaseTypes.Drawing && isClose) {
+        const isClose = guessIsClose(event.value.message, state.currentWord);
+        if (state.phase === PhaseTypes.Drawing && isClose) {
             server.sendServerEvent(WesketchEventType.SystemMessage, {
                 message: `${event.userName} is close...`
             });
@@ -474,6 +487,21 @@ class GiveUp implements IWesketchEventHandler {
         server.sendServerEvent(WesketchEventType.SystemMessage, {
             message: `${event.userName} gave up trying to draw the stupid word`
         });
+    }
+}
+
+class GiveHint implements IWesketchEventHandler {
+    handle = (event: IWesketchEvent, server: WesketchServer) => {
+        if (server.state.hintsGiven >= server.MAX_HINTS_ALLOWED) {
+            return;
+        }
+
+        server.state.hintsGiven++;
+        let message = server.state.hintsGiven > 1
+            ? `${event.userName} presents yet another hint!`
+            : `${event.userName} presents a hint!`;
+        server.sendServerEvent(WesketchEventType.SystemMessage, { message });
+        server.sendServerEvent(WesketchEventType.UpdateGameState, server.state);
     }
 }
 
