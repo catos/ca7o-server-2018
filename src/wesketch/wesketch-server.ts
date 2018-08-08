@@ -131,6 +131,28 @@ export class WesketchServer {
         });
     }
 
+    setDrawingPlayer() {
+        const sortedPlayers = this.state.players.sort((a, b) => {
+            if (a.drawCount > b.drawCount) {
+                return 1;
+            }
+
+            if (b.drawCount > a.drawCount) {
+                return -1;
+            }
+
+            return 0;
+        });
+        const drawingPlayer = sortedPlayers[0];
+
+        this.state.players.map(player => {
+            if (player.userId == drawingPlayer.userId) {
+                player.isDrawing = true;
+                player.drawCount += 1;
+            }
+        });
+    }
+
     handleEvent(event: IWesketchEvent) {
         switch (event.type) {
             case WesketchEventType.ToggleDebugMode:
@@ -227,27 +249,6 @@ export class WesketchServer {
         this.state.secondaryColor = WesketchServer.DEFAULT_STATE.secondaryColor;
         this.state.brushSize = WesketchServer.DEFAULT_STATE.brushSize;
 
-        // Choose drawing player
-        const sortedPlayers = this.state.players.sort((a, b) => {
-            if (a.drawCount > b.drawCount) {
-                return 1;
-            }
-
-            if (b.drawCount > a.drawCount) {
-                return -1;
-            }
-
-            return 0;
-        });
-        const drawingPlayer = sortedPlayers[0];
-
-        this.state.players.map(player => {
-            if (player.userId == drawingPlayer.userId) {
-                player.isDrawing = true;
-                player.drawCount += 1;
-            }
-        })
-
         // Choose current word
         this.state.currentWord = randomElement(WORDLIST);
 
@@ -276,6 +277,9 @@ export class WesketchServer {
             p.isDrawing = false;
             p.guessedWord = false;
         });
+
+        // Choose next drawing player
+        this.setDrawingPlayer();
 
         // End game if all players have drawn DRAWINGS_PER_PLAYER times each
         if (this.state.players.every(p => p.drawCount === this.DRAWINGS_PER_PLAYER)) {
@@ -388,6 +392,7 @@ class PlayerReady implements IWesketchEventHandler {
         });
 
         if (server.state.players.every(p => p.isReady) && server.state.players.length > 1) {
+            server.setDrawingPlayer();
             server.sendServerEvent(WesketchEventType.SystemMessage, { message: `All players are ready, starting game in ${server.START_ROUND_DURATION} seconds!` });
             server.startTimer(server.START_ROUND_DURATION, server.startRound);
         }
@@ -433,7 +438,7 @@ class Message implements IWesketchEventHandler {
 
             // Update drawing player score
             let drawingPlayer = state.players.find(p => p.isDrawing);
-            let drawScore = firstGuess 
+            let drawScore = firstGuess
                 ? 10 - (3 * state.hintsGiven)
                 : 1;
             drawingPlayer.score += drawScore;
