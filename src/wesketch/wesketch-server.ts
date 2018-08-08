@@ -480,7 +480,7 @@ class Message implements IWesketchEventHandler {
         // Someone is close
         const isClose = guessIsClose(event.value.message, state.currentWord);
         if (state.phase === PhaseTypes.Drawing && isClose) {
-            server.playSound('PlayerGuessIsClose', event.userId);
+            server.playSound('PlayerIsClose', event.userId);
             server.sendServerEvent(WesketchEventType.SystemMessage, {
                 message: `${event.userName} is close...`
             });
