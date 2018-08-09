@@ -8,6 +8,7 @@ enum WesketchEventType {
     PlayerLeft,
     PlayerReady,
     PlaySound,
+    StopSound,
     Message,
     SystemMessage,
     StartDraw,
@@ -201,10 +202,11 @@ export class WesketchServer {
         }
     }
 
-    playSound(name: string, userId: string) {
+    playSound(name: string, userId: string, global: boolean = false) {
         this.sendServerEvent(WesketchEventType.PlaySound, {
             name,
-            userId
+            userId,
+            global
         });
     }
 
@@ -289,6 +291,9 @@ export class WesketchServer {
         // Choose next drawing player
         this.setDrawingPlayer();
 
+        // Stop sounds
+        this.sendServerEvent(WesketchEventType.StopSound, {});
+
         // End game if all players have drawn DRAWINGS_PER_PLAYER times each
         if (this.state.players.every(p => p.drawCount === this.DRAWINGS_PER_PLAYER)) {
             this.endGame();
@@ -369,7 +374,7 @@ class PlayerJoined implements IWesketchEventHandler {
 
         if (existingPlayer === undefined) {
             server.state.players.push(player);
-            server.playSound('PlayerJoined', player.userId);
+            server.playSound('playerJoined', player.userId);
             server.sendServerEvent(WesketchEventType.SystemMessage, { message: `${player.name} joined the game` });
             server.sendServerEvent(WesketchEventType.UpdateGameState, server.state);
         }
@@ -406,7 +411,7 @@ class PlayerReady implements IWesketchEventHandler {
             server.startTimer(server.START_ROUND_DURATION, server.startRound);
         }
 
-        server.playSound('PlayerReady', event.userId);
+        server.playSound('playerReady', event.userId);
         server.sendServerEvent(WesketchEventType.UpdateGameState, server.state);
     }
 }
@@ -431,7 +436,7 @@ class Message implements IWesketchEventHandler {
             }
 
             // Send message to clients
-            server.playSound('PlayerGuessedTheWord', player.userId);
+            server.playSound('playerGuessedTheWord', player.userId);
             server.sendServerEvent(WesketchEventType.SystemMessage, {
                 message: `${event.userName} guessed the word!`
             });
@@ -469,7 +474,7 @@ class Message implements IWesketchEventHandler {
 
             // Reduce timer after first guess
             if (firstGuess && state.timer.remaining > server.FIRST_GUESS_TIME_REMAINING) {
-                server.playSound('TimerTension', event.userId);
+                server.playSound('timerTension', player.userId, true);
                 state.timer.remaining = server.FIRST_GUESS_TIME_REMAINING;
             }
 
@@ -480,7 +485,7 @@ class Message implements IWesketchEventHandler {
         // Someone is close
         const isClose = guessIsClose(event.value.message, state.currentWord);
         if (state.phase === PhaseTypes.Drawing && isClose) {
-            server.playSound('PlayerIsClose', event.userId);
+            server.playSound('playerIsClose', event.userId);
             server.sendServerEvent(WesketchEventType.SystemMessage, {
                 message: `${event.userName} is close...`
             });
