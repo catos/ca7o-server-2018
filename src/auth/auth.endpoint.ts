@@ -2,7 +2,7 @@ import { Router, Request, Response, NextFunction } from 'express';
 
 import { StatusCodes } from '../shared/status-codes';
 import { IEndpoint } from '../shared/endpoint.interface';
-import { AuthService } from '../auth/auth.service';
+import { AuthService } from './auth.service';
 
 import { IUser, User, UserTypes } from '../user/user.model';
 import { uuidv4 } from '../shared/utils';
