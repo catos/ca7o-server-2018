@@ -17,8 +17,7 @@ export class RecipesEndpoint implements IEndpoint {
 
         router.all(path + '/*', this.init);
         router.get(path + '/', this.authService.isAuthenticated, this.all);
-        // router.get('/find', this.authService.isAuthenticated, this.find);
-        // router.get('/:id', this.authService.isAuthenticated, this.get);
+        router.get(path + '/:id', this.authService.isAuthenticated, this.get);
         router.post(path + '/', this.authService.isAuthenticated, this.create);
         // router.put('/:id', this.authService.isAuthenticated, this.update);
         // router.delete('/:id', this.authService.isAuthenticated, this.delete);
@@ -54,4 +53,9 @@ export class RecipesEndpoint implements IEndpoint {
             .catch(error => this.errorHandler(error, response));
     }
 
+    get = (request: Request, response: Response, next: NextFunction) => {
+        Recipe.findOne({ guid: request.params.id }).exec()
+            .then(result => response.json(result))
+            .catch(error => this.errorHandler(error, response));
+    }
 }
