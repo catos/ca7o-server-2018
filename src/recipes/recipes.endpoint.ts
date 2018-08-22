@@ -19,8 +19,8 @@ export class RecipesEndpoint implements IEndpoint {
         router.get(path + '/', this.authService.isAuthenticated, this.all);
         router.get(path + '/:id', this.authService.isAuthenticated, this.get);
         router.post(path + '/', this.authService.isAuthenticated, this.create);
-        // router.put('/:id', this.authService.isAuthenticated, this.update);
-        // router.delete('/:id', this.authService.isAuthenticated, this.delete);
+        router.put(path + '/:id', this.authService.isAuthenticated, this.update);
+        router.delete(path + '/:id', this.authService.isAuthenticated, this.delete);
     }
 
     errorHandler = (error: Error, response: Response, message?: string): Response => {
@@ -45,6 +45,21 @@ export class RecipesEndpoint implements IEndpoint {
             .then(result => response.json(result))
             .catch(error => this.errorHandler(error, response));
     }
+
+    update = (request: Request, response: Response, next: NextFunction) => {
+        const recipe = request.body as IRecipe;
+
+        Recipe.findOneAndUpdate({ guid: request.params.id }, recipe, { new: true }).exec()
+            .then(result => response.json(result))
+            .catch(error => this.errorHandler(error, response));
+    }
+
+    delete = (request: Request, response: Response, next: NextFunction) => {
+        Recipe.findByIdAndRemove(request.params.id).exec()
+            .then(result => response.json(result))
+            .catch(error => this.errorHandler(error, response));
+    }
+
 
     all = (request: Request, response: Response, next: NextFunction) => {
         // Recipe.uest, response: Response, next: NextFunction) => {
