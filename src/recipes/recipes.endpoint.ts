@@ -38,7 +38,7 @@ export class RecipesEndpoint implements IEndpoint {
 
     create = (request: Request, response: Response, next: NextFunction) => {
         const newRecipe = request.body as IRecipe;
-        
+
         newRecipe.guid = uuidv4();
 
         Recipe.create(newRecipe)
@@ -62,8 +62,21 @@ export class RecipesEndpoint implements IEndpoint {
 
 
     all = (request: Request, response: Response, next: NextFunction) => {
-        // Recipe.uest, response: Response, next: NextFunction) => {
-        Recipe.find({}).exec()
+        let filters = {};
+
+        if (request.query.q !== undefined) {
+            filters = Object.assign({ name: new RegExp(request.query.q, 'i') }, filters);
+        }
+
+        if (request.query.time !== undefined) {
+            const time = parseInt(request.query.time) + 1;
+            filters = Object.assign({ time: { $lt: time } }, filters);
+        }
+
+        console.log(filters);
+
+
+        Recipe.find(filters).exec()
             .then(result => response.json(result))
             .catch(error => this.errorHandler(error, response));
     }
