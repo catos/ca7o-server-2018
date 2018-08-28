@@ -13,6 +13,7 @@ export const recipeSchema = new mongoose.Schema({
     name: { type: String, required: true },
     tags: [{ type: String, required: true }],
     thumbnail: { type: String, required: true },
+    url: { type: String, required: false },
     description: { type: String, required: true },
     time: { type: Number, required: true },
     ingredients: [ingredientSchema]
@@ -24,6 +25,7 @@ export interface IRecipe extends mongoose.Document {
     name: string;
     tags: string[],
     thumbnail: string;
+    url: string;
     description: string;
     time: number,
     ingredients: IIngredient[];
