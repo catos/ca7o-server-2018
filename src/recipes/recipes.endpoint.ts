@@ -17,6 +17,7 @@ export class RecipesEndpoint implements IEndpoint {
 
         router.all(path + '/*', this.init);
         router.get(path + '/', this.authService.isAuthenticated, this.all);
+        router.get(path + '/random-week', this.authService.isAuthenticated, this.randomWeek);
         router.get(path + '/:id', this.authService.isAuthenticated, this.get);
         router.post(path + '/', this.authService.isAuthenticated, this.create);
         router.put(path + '/:id', this.authService.isAuthenticated, this.update);
@@ -78,7 +79,7 @@ export class RecipesEndpoint implements IEndpoint {
             // filters = Object.assign({ tags: new RegExp(tag, 'i') }, filters);
             console.log('request.query.tags: ', request.query.tags.length);
             console.log('tags: ', tags);
-            filters = Object.assign({ tags: { $all: tags} }, filters);
+            filters = Object.assign({ tags: { $all: tags } }, filters);
         }
 
         console.log(filters);
@@ -91,6 +92,16 @@ export class RecipesEndpoint implements IEndpoint {
     get = (request: Request, response: Response, next: NextFunction) => {
         Recipe.findOne({ guid: request.params.id }).exec()
             .then(result => response.json(result))
+            .catch(error => this.errorHandler(error, response));
+    }
+
+    randomWeek = (request: Request, response: Response, next: NextFunction) => {
+        Recipe.find({ time: { $lt: 31 } }).exec()
+            .then(recipes => {
+                const shuffled = recipes.sort(() => .5 - Math.random());
+                const result = shuffled.slice(0, 5);
+                response.json(result);
+            })
             .catch(error => this.errorHandler(error, response));
     }
 }
