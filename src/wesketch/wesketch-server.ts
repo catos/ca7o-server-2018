@@ -159,6 +159,7 @@ export class WesketchServer {
         switch (event.type) {
             case WesketchEventType.ToggleDebugMode:
                 new ToggleDebugMode().handle(event, this);
+                break;
             case WesketchEventType.PlayerJoined:
                 new PlayerJoined().handle(event, this);
                 break;
@@ -191,6 +192,9 @@ export class WesketchServer {
                 break;
             case WesketchEventType.ResetGame:
                 new ResetGame().handle(event, this);
+                break;
+            case WesketchEventType.UpdateGameState:
+                new UpdateGameState().handle(event, this);
                 break;
             default:
                 this.sendServerEvent(WesketchEventType.ServerError,
@@ -555,6 +559,12 @@ class ChangeBrushSize implements IWesketchEventHandler {
 class ResetGame implements IWesketchEventHandler {
     handle = (event: IWesketchEvent, server: WesketchServer) => {
         server.resetGame();
+    }
+}
+
+class UpdateGameState implements IWesketchEventHandler {
+    handle(event: IWesketchEvent, server: WesketchServer): void {
+        server.sendEvent(event);
     }
 }
 
