@@ -124,13 +124,28 @@ export class WesketchServer {
 
             client.on('event', (event: IWesketchEvent) => {
                 // console.log(`### client: ${event.client}, timestamp: ${event.timestamp}, type: ${WesketchEventType[event.type]}`, event.value)
+                event.client = client.id;
                 this.handleEvent(event);
             })
 
             client.on('disconnect', () => {
-                // console.log('### Client Disconnected')
+                // console.log('### Client Disconnected: ', client.id);
+                this.clientDisconnected(client.id);
             })
         });
+    }
+
+    clientDisconnected(clientId: string) {
+        const { players } = this.state;
+
+        const player = players.find(p => p.clientId === clientId);
+        if (player === undefined) {
+            return;
+        }
+        
+        this.state.players = players.filter(p => p.clientId !== clientId)
+        this.sendServerEvent(WesketchEventType.UpdateGameState, this.state);
+        this.sendServerEvent(WesketchEventType.SystemMessage, { message: `${player.name} disconnected` });
     }
 
     setDrawingPlayer() {
@@ -275,6 +290,13 @@ export class WesketchServer {
     }
 
     endRound = () => {
+
+        // End game if all players have drawn DRAWINGS_PER_PLAYER times each
+        if (this.state.players.every(p => p.drawCount === this.DRAWINGS_PER_PLAYER)) {
+            this.endGame();
+            return;
+        }
+
         // Set phase to endRound
         this.state.phase = PhaseTypes.RoundEnd;
 
@@ -295,17 +317,11 @@ export class WesketchServer {
         // Choose next drawing player
         this.setDrawingPlayer();
 
-        // Stop sounds
-        this.sendServerEvent(WesketchEventType.StopSound, {});
-
-        // End game if all players have drawn DRAWINGS_PER_PLAYER times each
-        if (this.state.players.every(p => p.drawCount === this.DRAWINGS_PER_PLAYER)) {
-            this.endGame();
-            return;
-        }
-
         // Update game state
         this.sendServerEvent(WesketchEventType.UpdateGameState, this.state);
+
+        // Stop sounds
+        this.sendServerEvent(WesketchEventType.StopSound, {});
 
         // Start new round in X seconds
         this.startTimer(this.END_ROUND_DURATION, this.startRound);
@@ -389,7 +405,6 @@ class PlayerJoined implements IWesketchEventHandler {
 class PlayerLeft implements IWesketchEventHandler {
     handle = (event: IWesketchEvent, server: WesketchServer) => {
         server.state.players = server.state.players.filter(p => p.userId !== event.userId)
-
         server.sendServerEvent(WesketchEventType.SystemMessage, { message: `${event.userName} left the game` });
         server.sendServerEvent(WesketchEventType.UpdateGameState, server.state);
     }
@@ -424,6 +439,9 @@ class Message implements IWesketchEventHandler {
     handle = (event: IWesketchEvent, server: WesketchServer) => {
         const { state } = server;
         let player = state.players.find(p => p.userId === event.userId);
+        if (player === undefined) {
+            return;
+        }
 
         // Drawing player is not allowed to guess or talk during draw-phase
         if (player.isDrawing) {
