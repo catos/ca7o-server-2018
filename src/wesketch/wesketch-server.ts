@@ -21,6 +21,8 @@ enum WesketchEventType {
     ChangeBrushSize,
     UpdateGameState,
     ResetGame,
+    SaveDrawing,
+    GetDrawings,    
     ShowScores
 }
 
@@ -98,6 +100,7 @@ export class WesketchServer {
         secondaryColor: '#ffffff',
         brushSize: 3
     };
+    public drawings: string[] = [];
 
     readonly MAX_HINTS_ALLOWED: number = 3;
     readonly GUESS_SCORE: number = 10;
@@ -142,7 +145,7 @@ export class WesketchServer {
         if (player === undefined) {
             return;
         }
-        
+
         this.state.players = players.filter(p => p.clientId !== clientId)
         this.sendServerEvent(WesketchEventType.UpdateGameState, this.state);
         this.sendServerEvent(WesketchEventType.SystemMessage, { message: `${player.name} disconnected` });
@@ -207,6 +210,9 @@ export class WesketchServer {
                 break;
             case WesketchEventType.ResetGame:
                 new ResetGame().handle(event, this);
+                break;
+            case WesketchEventType.SaveDrawing:
+                new SaveDrawing().handle(event, this);
                 break;
             case WesketchEventType.UpdateGameState:
                 new UpdateGameState().handle(event, this);
@@ -290,12 +296,15 @@ export class WesketchServer {
     }
 
     endRound = () => {
-
         // End game if all players have drawn DRAWINGS_PER_PLAYER times each
         if (this.state.players.every(p => p.drawCount === this.DRAWINGS_PER_PLAYER)) {
             this.endGame();
             return;
         }
+
+        // Save image
+        const drawingPlayer = this.state.players.find(p => p.isDrawing);
+        this.sendServerEvent(WesketchEventType.SaveDrawing, { player: drawingPlayer.name, word: this.state.currentWord });
 
         // Set phase to endRound
         this.state.phase = PhaseTypes.RoundEnd;
@@ -340,11 +349,8 @@ export class WesketchServer {
         // Show scores
         this.sendServerEvent(WesketchEventType.ShowScores, {});
 
-        // TODO: Reset game when all players are ready
-        // this.startTimer(this.END_GAME_DURATION, this.resetGame);
-        this.sendServerEvent(
-            WesketchEventType.SystemMessage,
-            { message: `Game ended....TODO, show summary in chat ?` });
+        // Send drawings to clients
+        this.sendServerEvent(WesketchEventType.GetDrawings, this.drawings);
     }
 
     resetGame = () => {
@@ -577,6 +583,22 @@ class ChangeBrushSize implements IWesketchEventHandler {
 class ResetGame implements IWesketchEventHandler {
     handle = (event: IWesketchEvent, server: WesketchServer) => {
         server.resetGame();
+    }
+}
+
+class SaveDrawing implements IWesketchEventHandler {
+    handle = (event: IWesketchEvent, server: WesketchServer) => {
+        const imageData = event.value.imageData as string;
+        console.log('imageData.length: ', imageData.length);
+        
+        server.drawings.push(imageData);
+        // const imageDataCompressed = zlib.deflateSync(imageData);
+        // console.log('imageDataCompressed.length: ', imageDataCompressed.length);
+        
+        // var base64Data = imageData.replace(/^data:image\/png;base64,/, "");
+        // fs.writeFile("out.png", base64Data, 'base64', (err: NodeJS.ErrnoException) => {
+        //     console.log(err);
+        // });
     }
 }
 
