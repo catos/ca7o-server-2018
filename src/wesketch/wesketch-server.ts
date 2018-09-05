@@ -58,6 +58,12 @@ interface ITimer {
     duration: number;
 }
 
+interface IDrawing {
+    player: string;
+    word: string;
+    data: string;
+}
+
 interface IWesketchGameState {
     debugMode: boolean;
     phase: PhaseTypes,
@@ -100,7 +106,8 @@ export class WesketchServer {
         secondaryColor: '#ffffff',
         brushSize: 3
     };
-    public drawings: string[] = [];
+
+    public drawings: IDrawing[] = [];
 
     readonly MAX_HINTS_ALLOWED: number = 3;
     readonly GUESS_SCORE: number = 10;
@@ -302,7 +309,7 @@ export class WesketchServer {
             return;
         }
 
-        // Save image
+        // Request drawing player to save image
         const drawingPlayer = this.state.players.find(p => p.isDrawing);
         this.sendServerEvent(WesketchEventType.SaveDrawing, { player: drawingPlayer.name, word: this.state.currentWord });
 
@@ -588,13 +595,15 @@ class ResetGame implements IWesketchEventHandler {
 
 class SaveDrawing implements IWesketchEventHandler {
     handle = (event: IWesketchEvent, server: WesketchServer) => {
-        const imageData = event.value.imageData as string;
-        console.log('imageData.length: ', imageData.length);
-        
-        server.drawings.push(imageData);
+        const data = event.value.data as string;
+        const drawing: IDrawing = {
+            player: event.value.player,
+            word: event.value.word,
+            data
+        };
+        server.drawings.push(drawing);
         // const imageDataCompressed = zlib.deflateSync(imageData);
         // console.log('imageDataCompressed.length: ', imageDataCompressed.length);
-        
         // var base64Data = imageData.replace(/^data:image\/png;base64,/, "");
         // fs.writeFile("out.png", base64Data, 'base64', (err: NodeJS.ErrnoException) => {
         //     console.log(err);
