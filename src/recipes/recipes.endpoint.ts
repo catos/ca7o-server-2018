@@ -76,9 +76,6 @@ export class RecipesEndpoint implements IEndpoint {
 
         if (request.query.tags !== undefined && request.query.tags.length > 0) {
             const tags = request.query.tags.split(',') as string[];
-            // filters = Object.assign({ tags: new RegExp(tag, 'i') }, filters);
-            console.log('request.query.tags: ', request.query.tags.length);
-            console.log('tags: ', tags);
             filters = Object.assign({ tags: { $all: tags } }, filters);
         }
 
