@@ -79,9 +79,20 @@ export class RecipesEndpoint implements IEndpoint {
             filters = Object.assign({ tags: { $all: tags } }, filters);
         }
 
-        console.log(filters);
+        let query = Recipe.find(filters);
 
-        Recipe.find(filters).exec()
+        // Paging
+        const take = 10;
+        let page = 0;
+        if (request.query.page !== undefined) {
+            page = +(request.query.page - 1);
+            query = query
+                .skip(page * take)
+                .limit(take);
+        }
+        
+
+        query.exec()
             .then(result => response.json(result))
             .catch(error => this.errorHandler(error, response));
     }
