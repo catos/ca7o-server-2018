@@ -13,7 +13,7 @@ export const recipeSchema = new mongoose.Schema({
     name: { type: String, required: true },
     tags: [{ type: String, required: true }],
     thumbnail: { type: String, required: true },
-    url: { type: String, required: false },
+    url: { type: String, required: false, default: '' },
     description: { type: String, required: true },
     time: { type: Number, required: true },
     ingredients: [ingredientSchema]
