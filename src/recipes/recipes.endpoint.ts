@@ -91,6 +91,8 @@ export class RecipesEndpoint implements IEndpoint {
                 .limit(take);
         }
         
+        // Sort
+        query = query.sort('-created');
 
         query.exec()
             .then(result => response.json(result))
