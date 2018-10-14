@@ -113,7 +113,7 @@ export class Server {
     }
 
     public start() {
-        const port = process.env.PORT || 5000;
+        const port = process.env.PORT || 3001;
 
         // create http server
         const httpServer = http.createServer(this.app)

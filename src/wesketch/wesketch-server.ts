@@ -3,7 +3,6 @@ import { randomElement, guessIsClose } from "../shared/utils";
 
 enum WesketchEventType {
     ServerError,
-    ToggleDebugMode,
     PlayerJoined,
     PlayerLeft,
     PlayerReady,
@@ -182,9 +181,6 @@ export class WesketchServer {
 
     handleEvent(event: IWesketchEvent) {
         switch (event.type) {
-            case WesketchEventType.ToggleDebugMode:
-                new ToggleDebugMode().handle(event, this);
-                break;
             case WesketchEventType.PlayerJoined:
                 new PlayerJoined().handle(event, this);
                 break;
@@ -573,17 +569,18 @@ class ClearCanvas implements IWesketchEventHandler {
 class ChangeColor implements IWesketchEventHandler {
     handle = (event: IWesketchEvent, server: WesketchServer) => {
         server.state.primaryColor = event.value;
-        server.sendServerEvent(WesketchEventType.SystemMessage, {
-            message: `Changed color to ${event.value}`
-        });
         server.sendServerEvent(WesketchEventType.UpdateGameState, server.state);
     }
 }
 
 class ChangeBrushSize implements IWesketchEventHandler {
     handle = (event: IWesketchEvent, server: WesketchServer) => {
-        server.state.brushSize += +event.value;
-        server.sendServerEvent(WesketchEventType.UpdateGameState, server.state);
+        let newBrushSize = server.state.brushSize + +event.value;
+
+        if (newBrushSize > 0 && newBrushSize <= 24) {
+            server.state.brushSize = newBrushSize;
+            server.sendServerEvent(WesketchEventType.UpdateGameState, server.state);
+        }
     }
 }
 
@@ -613,20 +610,7 @@ class SaveDrawing implements IWesketchEventHandler {
 
 class UpdateGameState implements IWesketchEventHandler {
     handle(event: IWesketchEvent, server: WesketchServer): void {
+        server.state = event.value;
         server.sendEvent(event);
     }
 }
-
-class ToggleDebugMode implements IWesketchEventHandler {
-    handle(event: IWesketchEvent, server: WesketchServer): void {
-        server.state.debugMode = !server.state.debugMode;
-
-        const message = server.state.debugMode
-            ? 'game is in debug mode'
-            : 'game is no longer in debug mode';
-
-        server.sendServerEvent(WesketchEventType.SystemMessage, { message });
-        server.sendServerEvent(WesketchEventType.UpdateGameState, server.state);
-    }
-}
-
