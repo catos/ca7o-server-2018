@@ -358,17 +358,7 @@ export class WesketchServer {
 
     resetGame = () => {
         clearInterval(this.intervalId);
-
-        const players = this.state.players.map(p => {
-            p.isReady = false;
-            p.score = 0;
-            p.drawCount = 0;
-            p.isDrawing = false;
-            p.guessedWord = false;
-            return p;
-        });
         this.state = JSON.parse(JSON.stringify(WesketchServer.DEFAULT_STATE));
-        this.state.players = players;
 
         this.sendServerEvent(WesketchEventType.SystemMessage, { message: 'Game has been reset' });
         this.sendServerEvent(WesketchEventType.UpdateGameState, this.state);
