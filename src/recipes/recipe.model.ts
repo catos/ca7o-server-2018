@@ -32,14 +32,15 @@ export interface IRecipe extends mongoose.Document {
 }
 
 export enum IngredientTypes {
-    Vegetables = 0,
-    Fruit = 1,
-    Grain = 2,
-    Meat = 3,
-    Dairy = 4,
-    Spice = 5,
-    Sauce = 6,
-    Canned = 7,
+    NotSet = 0,
+    Vegetables = 1,
+    Fruit = 2,
+    Grain = 3,
+    Meat = 4,
+    Dairy = 5,
+    Spice = 6,
+    Sauce = 7,
+    Canned = 8,
 }
 
 export interface IIngredient extends mongoose.Document {

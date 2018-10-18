@@ -12,11 +12,12 @@ import { serverConfig } from './server.config'
 import { AuthService } from './auth/auth.service'
 
 import { WesketchServer } from './wesketch/wesketch-server';
+// import { TickerServer } from './ticker/ticker-server';
 
 import { AuthEndpoint } from './auth/auth.endpoint';
 import { UserEndpoint } from './user/user.endpoint'
 import { RecipesEndpoint } from './recipes/recipes.endpoint';
-import { TickerServer } from './ticker/ticker-server';
+import { WesketchWordsEndpoint } from './wesketch/wesketch-words.endpoint';
 
 /**
  * The server.
@@ -97,6 +98,7 @@ export class Server {
         new AuthEndpoint('/auth', router, this.authService);
         new UserEndpoint('/api/users', router, this.authService);
         new RecipesEndpoint('/api/recipes', router, this.authService);
+        new WesketchWordsEndpoint('/api/wesketch/words', router, this.authService);
 
         // Router
         this.app.use(router);
