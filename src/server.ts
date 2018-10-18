@@ -115,8 +115,6 @@ export class Server {
     }
 
     public start() {
-        const port = process.env.PORT || 3001;
-
         // create http server
         const httpServer = http.createServer(this.app)
 
@@ -130,8 +128,8 @@ export class Server {
         // new TickerServer(io);
 
         // listen on provided ports
-        httpServer.listen(port, function () {
-            console.log('App is running on port: ' + port);
+        httpServer.listen(serverConfig.port, function () {
+            console.log('App is running on port: ' + serverConfig.port);
         });
 
         // add error handler
