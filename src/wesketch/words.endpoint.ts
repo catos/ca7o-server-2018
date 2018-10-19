@@ -6,10 +6,10 @@ import { StatusCodes } from '../shared/status-codes';
 import { IEndpoint } from '../shared/endpoint.interface';
 import { AuthService } from "../auth/auth.service";
 
-import { WesketchWord, IWesketchWord, DifficultyTypes, LanguageTypes } from './wesketch-word.model';
+import { Word, IWord, DifficultyTypes, LanguageTypes } from './word.model';
 import { WORDLIST } from './wordlist-new';
 
-export class WesketchWordsEndpoint implements IEndpoint {
+export class WordsEndpoint implements IEndpoint {
     constructor(
         public path: string,
         public router: Router,
@@ -38,7 +38,7 @@ export class WesketchWordsEndpoint implements IEndpoint {
     }
 
     seed = (request: Request, response: Response, next: NextFunction) => {
-        // WesketchWord.count({}, (err, count) => {
+        // Word.count({}, (err, count) => {
         //     // Seed data
         //     if (count === 0) {
         //         WORDLIST.forEach(word => {
@@ -50,7 +50,7 @@ export class WesketchWordsEndpoint implements IEndpoint {
         //                 difficulty: DifficultyTypes.Hard,
         //                 language: LanguageTypes.English
         //             };
-        //             WesketchWord.create(ww)
+        //             Word.create(ww)
         //                 .then(result => console.log('word: ' + word + ' added'))
         //                 .catch(error => this.errorHandler(error, response));
         //         });
@@ -61,25 +61,25 @@ export class WesketchWordsEndpoint implements IEndpoint {
     }
 
     create = (request: Request, response: Response, next: NextFunction) => {
-        const newWord = request.body as IWesketchWord;
+        const newWord = request.body as IWord;
 
         newWord.guid = uuidv4();
 
-        WesketchWord.create(newWord)
+        Word.create(newWord)
             .then(result => response.json(result))
             .catch(error => this.errorHandler(error, response));
     }
 
     update = (request: Request, response: Response, next: NextFunction) => {
-        const updatedWord = request.body as IWesketchWord;
+        const updatedWord = request.body as IWord;
 
-        WesketchWord.findOneAndUpdate({ guid: request.params.id }, updatedWord, { new: true }).exec()
+        Word.findOneAndUpdate({ guid: request.params.id }, updatedWord, { new: true }).exec()
             .then(result => response.json(result))
             .catch(error => this.errorHandler(error, response));
     }
 
     delete = (request: Request, response: Response, next: NextFunction) => {
-        WesketchWord.findByIdAndRemove(request.params.id).exec()
+        Word.findByIdAndRemove(request.params.id).exec()
             .then(result => response.json(result))
             .catch(error => this.errorHandler(error, response));
     }
@@ -92,7 +92,17 @@ export class WesketchWordsEndpoint implements IEndpoint {
             filters = Object.assign({ word: new RegExp(request.query.q, 'i') }, filters);
         }
 
-        let query = WesketchWord.find(filters);
+        if (request.query.difficulties !== undefined && request.query.difficulties.length > 0) {
+            const difficulties = request.query.difficulties.split(',') as number[];
+            filters = Object.assign({ difficulty: { $in: difficulties } }, filters);
+        }
+
+        if (request.query.languages !== undefined && request.query.languages.length > 0) {
+            const languages = request.query.languages.split(',') as number[];
+            filters = Object.assign({ language: { $in: languages } }, filters);
+        }
+
+        let query = Word.find(filters);
 
         // Paging
         const take = 10;
@@ -113,7 +123,7 @@ export class WesketchWordsEndpoint implements IEndpoint {
     }
 
     get = (request: Request, response: Response, next: NextFunction) => {
-        WesketchWord.findOne({ guid: request.params.id }).exec()
+        Word.findOne({ guid: request.params.id }).exec()
             .then(result => response.json(result))
             .catch(error => this.errorHandler(error, response));
     }

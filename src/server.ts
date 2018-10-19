@@ -17,7 +17,7 @@ import { WesketchServer } from './wesketch/wesketch-server';
 import { AuthEndpoint } from './auth/auth.endpoint';
 import { UserEndpoint } from './user/user.endpoint'
 import { RecipesEndpoint } from './recipes/recipes.endpoint';
-import { WesketchWordsEndpoint } from './wesketch/wesketch-words.endpoint';
+import { WordsEndpoint } from './wesketch/words.endpoint';
 
 /**
  * The server.
@@ -98,7 +98,7 @@ export class Server {
         new AuthEndpoint('/auth', router, this.authService);
         new UserEndpoint('/api/users', router, this.authService);
         new RecipesEndpoint('/api/recipes', router, this.authService);
-        new WesketchWordsEndpoint('/api/wesketch/words', router, this.authService);
+        new WordsEndpoint('/api/wesketch/words', router, this.authService);
 
         // Router
         this.app.use(router);

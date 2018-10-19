@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 
-export const wesketchWordSchema = new mongoose.Schema({
+export const wordSchema = new mongoose.Schema({
     guid: { type: String, required: true, unique: true },
     created: { type: Number, required: true, default: Date.now() },
     word: { type: String, required: true },
@@ -9,7 +9,7 @@ export const wesketchWordSchema = new mongoose.Schema({
     language: { type: Number, required: true }
 });
 
-export interface IWesketchWord extends mongoose.Document {
+export interface IWord extends mongoose.Document {
     guid: string;
     created: number;
     word: string;
@@ -31,5 +31,5 @@ export enum LanguageTypes {
     Norwegian = 2
 }
 
-export const WesketchWord = mongoose
-    .model<IWesketchWord>("WesketchWord", wesketchWordSchema) as mongoose.Model<IWesketchWord>;
+export const Word = mongoose
+    .model<IWord>("WesketchWord", wordSchema) as mongoose.Model<IWord>;
