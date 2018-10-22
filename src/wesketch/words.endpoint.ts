@@ -105,14 +105,11 @@ export class WordsEndpoint implements IEndpoint {
         let query = Word.find(filters);
 
         // Paging
-        const take = 10;
-        let page = 0;
-        if (request.query.page !== undefined) {
-            page = +(request.query.page - 1);
-            query = query
-                .skip(page * take)
-                .limit(take);
-        }
+        const take = 100;
+        let page = request.query.page !== undefined ? +(request.query.page - 1) : 0;
+        query = query
+            .skip(page * take)
+            .limit(take);
 
         // Sort
         query = query.sort('-created');
