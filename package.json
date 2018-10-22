@@ -20,7 +20,7 @@
         "@types/cors": "2.8.3",
         "@types/errorhandler": "0.0.32",
         "@types/jsonwebtoken": "7.2.3",
-        "@types/mongoose": "4.7.27",
+        "@types/mongoose": "^5.2.19",
         "@types/morgan": "1.7.35",
         "@types/socket.io": "1.4.31",
         "concurrently": "3.6.0",
@@ -37,9 +37,9 @@
         "express": "4.16.2",
         "jsonwebtoken": "8.1.0",
         "moment": "^2.22.2",
-        "mongoose": "4.13.4",
+        "mongoose": "^5.3.5",
         "morgan": "1.9.0",
-        "npm": "5.8.0",
+        "npm": "^6.4.1",
         "socket.io": "2.0.4"
     },
     "engines": {

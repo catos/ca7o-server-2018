@@ -65,7 +65,8 @@ export class Server {
 
         // Mongoose
         mongoose.Promise = global.Promise;
-        mongoose.connect(serverConfig.db, { useMongoClient: true });
+        mongoose.connect(serverConfig.db, { useNewUrlParser: true });
+        mongoose.set('useCreateIndex', true);
         mongoose.connection.on('error', error => console.error(error));
 
         // Initializer auth service
