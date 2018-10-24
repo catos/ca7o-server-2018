@@ -85,7 +85,7 @@ export class WordsEndpoint implements IEndpoint {
     }
 
 
-    all = (request: Request, response: Response, next: NextFunction) => {
+    async all(request: Request, response: Response, next: NextFunction) {
         let filters = {};
 
         if (request.query.q !== undefined) {
@@ -104,6 +104,9 @@ export class WordsEndpoint implements IEndpoint {
 
         let query = Word.find(filters);
 
+        // Get document-count in collection
+        const count = await Word.find(filters).countDocuments();
+        
         // Paging
         const take = 100;
         let page = request.query.page !== undefined ? +(request.query.page - 1) : 0;
@@ -115,7 +118,14 @@ export class WordsEndpoint implements IEndpoint {
         query = query.sort('-created');
 
         query.exec()
-            .then(result => response.json(result))
+            .then(words => {
+                const result = {
+                    count,
+                    totalPages: Math.floor(count / take),
+                    words
+                };
+                response.json(result);
+            })
             .catch(error => this.errorHandler(error, response));
     }
 
