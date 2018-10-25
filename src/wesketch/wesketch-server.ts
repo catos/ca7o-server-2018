@@ -3,7 +3,7 @@ import { WORDLIST } from "./wordlist-new";
 import { WesketchEmitter } from "./wesketch-emitter";
 import { randomElement, guessIsClose } from "../shared/utils";
 
-enum WesketchEventType {
+export enum WesketchEventType {
     ServerError,
     PlayerJoined,
     PlayerLeft,
@@ -12,7 +12,6 @@ enum WesketchEventType {
     StopSound,
     Message,
     SystemMessage,
-    StartDraw,
     Draw,
     StopDraw,
     GiveUp,
@@ -24,10 +23,13 @@ enum WesketchEventType {
     ResetGame,
     SaveDrawing,
     GetDrawings,
-    ShowScores
+    ShowScores,
+
+    // Server events
+    StartDrawing,
 }
 
-interface IWesketchEvent {
+export interface IWesketchEvent {
     client: string;
     userId: string;
     userName: string;
@@ -36,14 +38,14 @@ interface IWesketchEvent {
     value: any;
 }
 
-enum PhaseTypes {
+export enum PhaseTypes {
     Lobby,
     Drawing,
     RoundEnd,
     GameEnd
 }
 
-interface IPlayer {
+export interface IPlayer {
     clientId: string;
     userId: string;
     name: string;
@@ -54,18 +56,18 @@ interface IPlayer {
     guessedWord: boolean;
 }
 
-interface ITimer {
+export interface ITimer {
     remaining: number;
     duration: number;
 }
 
-interface IDrawing {
+export interface IDrawing {
     player: string;
     word: string;
     data: string;
 }
 
-interface IWesketchGameState {
+export interface IWesketchGameState {
     debugMode: boolean;
     phase: PhaseTypes,
     players: IPlayer[],
@@ -90,11 +92,9 @@ interface IWesketchGameState {
  * sendServerEvent: goto method for event-handlers to create events
  */
 export class WesketchServer {
-    private _io: SocketIO.Namespace;
 
-    private emitter: WesketchEmitter;
-    private handlers: IWesketchEventHandler[];
-
+    public emitter: WesketchEmitter;
+    
     public state: IWesketchGameState;
     static DEFAULT_STATE: IWesketchGameState = {
         debugMode: false,
@@ -112,69 +112,50 @@ export class WesketchServer {
         secondaryColor: '#ffffff',
         brushSize: 3
     };
-
     public drawings: IDrawing[] = [];
 
-    readonly MAX_HINTS_ALLOWED: number = 3;
-    readonly GUESS_SCORE: number = 10;
-    readonly FIRST_GUESS_TIME_REMAINING: number = 30;
+    public readonly MAX_HINTS_ALLOWED: number = 3;
+    public readonly GUESS_SCORE: number = 10;
+    public readonly FIRST_GUESS_TIME_REMAINING: number = 30;
+    public readonly START_ROUND_DURATION: number = 3;
+    public readonly ROUND_DURATION: number = 90;
+    public readonly END_ROUND_DURATION: number = 10;
+    public readonly DRAWINGS_PER_PLAYER: number = 3;
+    public readonly TIMER_DELAY: number = 1000;
 
-    readonly START_ROUND_DURATION: number = 3;
-    readonly ROUND_DURATION: number = 90;
-    readonly END_ROUND_DURATION: number = 10;
-
-    readonly DRAWINGS_PER_PLAYER: number = 3;
-    readonly TIMER_DELAY: number = 1000;
-
-    intervalId: any;
+    private handlers: IWesketchEventHandler[];
+    private intervalId: any;
 
     constructor(io: SocketIO.Server) {
         this.emitter = new WesketchEmitter(io);
-
-        this.emitter.on('event', value => {
-            console.log('new event: ', value);
-        });
-        this.emitter.emit('event', 'a');
-        this.emitter.send({ message: 'weeee' });
-        this.emitter.send({ message: 'weeee 2' });
 
         // Default values
         this.state = JSON.parse(JSON.stringify(WesketchServer.DEFAULT_STATE));
         this.intervalId = 0;
 
-        // Sockets
-        this._io = io.of('wesketch');
-        this._io.on('connection', (client: SocketIO.Socket) => {
-            // console.log('### Client Connected')
-
-            client.on('event', (event: IWesketchEvent) => {
-                // console.log(`### client: ${event.client}, timestamp: ${event.timestamp}, type: ${WesketchEventType[event.type]}`, event.value)
-                event.client = client.id;
-                this.handleEvent(event);
-            })
-
-            client.on('disconnect', () => {
-                // console.log('### Client Disconnected: ', client.id);
-                this.clientDisconnected(client.id);
-            })
-        });
-
         // Initialize handlers
         this.handlers = [
             new PlayerJoined(),
             new PlayerLeft(),
-            new PlayerReady(),
-            new Message(),
-            new Draw(),
-            new GiveUp(),
-            new GiveHint(),
-            new ClearCanvas(),
-            new ChangeColor(),
-            new ChangeBrushSize(),
-            new ResetGame(),
-            new SaveDrawing(),
-            new UpdateGameState(),
+            new PlayerReadyHandler(),
+            new MessageHandler(),
+            new DrawHandler(),
+            new GiveUpHandler(),
+            new GiveHintHandler(),
+            new ClearCanvasHandler(),
+            new ChangeColorHandler(),
+            new ChangeBrushSizeHandler(),
+            new ResetGameHandler(),
+            new SaveDrawingHandler(),
+            new UpdateGameStateHandler(),
+
+            new StartDrawingHandler()
         ];
+
+        // Handle events
+        this.emitter.on('event', event => {
+            this.handleEvent(event);
+        });
     }
 
     clientDisconnected(clientId: string) {
@@ -186,8 +167,8 @@ export class WesketchServer {
         }
 
         this.state.players = players.filter(p => p.clientId !== clientId)
-        this.sendServerEvent(WesketchEventType.UpdateGameState, this.state);
-        this.sendServerEvent(WesketchEventType.SystemMessage, { message: `${player.name} disconnected` });
+        this.emitter.sendServerEvent(WesketchEventType.UpdateGameState, this.state);
+        this.emitter.sendServerEvent(WesketchEventType.SystemMessage, { message: `${player.name} disconnected` });
     }
 
     setDrawingPlayer() {
@@ -213,27 +194,12 @@ export class WesketchServer {
     }
 
     handleEvent(event: IWesketchEvent) {
+        console.log('handleEvent', event.type);
+        
         this.handlers.forEach((handler: IWesketchEventHandler) => {
             handler.handle(event, this);
         });
     }
-
-    sendServerEvent(type: WesketchEventType, value: any) {
-        const event = {
-            client: 'system',
-            userId: 'system',
-            userName: 'system',
-            timestamp: new Date(),
-            type,
-            value
-        };
-        this.sendEvent(event);
-    }
-
-    sendEvent(event: IWesketchEvent) {
-        this._io.emit('event', event);
-    }
-
 
     // TODO: maek loop
     // loop = () => {
@@ -246,8 +212,6 @@ export class WesketchServer {
         timer.duration = duration;
         timer.remaining = duration;
         this.intervalId = setInterval(() => {
-            // this.sendServerEvent(WesketchEventType.SystemMessage, { message: `Timer ticked - remaining: ${timer.remaining}` });
-
             if (timer.remaining <= 0) {
                 clearInterval(this.intervalId);
                 next();
@@ -255,7 +219,7 @@ export class WesketchServer {
             }
 
             timer.remaining--;
-            this.sendServerEvent(WesketchEventType.UpdateGameState, this.state);
+            this.emitter.sendServerEvent(WesketchEventType.UpdateGameState, this.state);
         }, this.TIMER_DELAY);
     }
 
@@ -267,7 +231,7 @@ export class WesketchServer {
         this.state.round += 1;
 
         // Clear canvas
-        this.sendServerEvent(WesketchEventType.ClearCanvas, {});
+        this.emitter.sendServerEvent(WesketchEventType.ClearCanvas, {});
 
         // Reset drawing tools
         this.state.primaryColor = WesketchServer.DEFAULT_STATE.primaryColor;
@@ -278,11 +242,11 @@ export class WesketchServer {
         this.state.currentWord = randomElement(WORDLIST);
 
         // Update game state
-        this.sendServerEvent(WesketchEventType.UpdateGameState, this.state);
+        this.emitter.sendServerEvent(WesketchEventType.UpdateGameState, this.state);
 
         // Start timer
         this.startTimer(this.ROUND_DURATION, this.endRound);
-        this.sendServerEvent(WesketchEventType.SystemMessage, { message: `Round ${this.state.round} started!` })
+        this.emitter.sendServerEvent(WesketchEventType.SystemMessage, { message: `Round ${this.state.round} started!` })
     }
 
     endRound = () => {
@@ -294,7 +258,7 @@ export class WesketchServer {
 
         // Request drawing player to save image
         const drawingPlayer = this.state.players.find(p => p.isDrawing);
-        this.sendServerEvent(WesketchEventType.SaveDrawing, { player: drawingPlayer.name, word: this.state.currentWord });
+        this.emitter.sendServerEvent(WesketchEventType.SaveDrawing, { player: drawingPlayer.name, word: this.state.currentWord });
 
         // Set phase to endRound
         this.state.phase = PhaseTypes.RoundEnd;
@@ -303,7 +267,7 @@ export class WesketchServer {
         this.state.hintsGiven = 0;
 
         // Show last word to players
-        this.sendServerEvent(
+        this.emitter.sendServerEvent(
             WesketchEventType.SystemMessage,
             { message: `The word was: ${this.state.currentWord}` });
 
@@ -317,14 +281,14 @@ export class WesketchServer {
         this.setDrawingPlayer();
 
         // Update game state
-        this.sendServerEvent(WesketchEventType.UpdateGameState, this.state);
+        this.emitter.sendServerEvent(WesketchEventType.UpdateGameState, this.state);
 
         // Stop sounds
-        this.sendServerEvent(WesketchEventType.StopSound, {});
+        this.emitter.sendServerEvent(WesketchEventType.StopSound, {});
 
         // Start new round in X seconds
         this.startTimer(this.END_ROUND_DURATION, this.startRound);
-        this.sendServerEvent(
+        this.emitter.sendServerEvent(
             WesketchEventType.SystemMessage,
             { message: `Starting new round in ${this.END_ROUND_DURATION} seconds...` })
     }
@@ -334,22 +298,22 @@ export class WesketchServer {
         this.state.phase = PhaseTypes.GameEnd;
 
         // Update game state
-        this.sendServerEvent(WesketchEventType.UpdateGameState, this.state);
+        this.emitter.sendServerEvent(WesketchEventType.UpdateGameState, this.state);
 
         // Show scores
-        this.sendServerEvent(WesketchEventType.ShowScores, {});
+        this.emitter.sendServerEvent(WesketchEventType.ShowScores, {});
 
         // Send drawings to clients
-        this.sendServerEvent(WesketchEventType.GetDrawings, this.drawings);
+        this.emitter.sendServerEvent(WesketchEventType.GetDrawings, this.drawings);
     }
 
     resetGame = () => {
         clearInterval(this.intervalId);
         this.state = JSON.parse(JSON.stringify(WesketchServer.DEFAULT_STATE));
 
-        this.sendServerEvent(WesketchEventType.SystemMessage, { message: 'Game has been reset' });
-        this.sendServerEvent(WesketchEventType.UpdateGameState, this.state);
-        this.sendServerEvent(WesketchEventType.ClearCanvas, {});
+        this.emitter.sendServerEvent(WesketchEventType.SystemMessage, { message: 'Game has been reset' });
+        this.emitter.sendServerEvent(WesketchEventType.UpdateGameState, this.state);
+        this.emitter.sendServerEvent(WesketchEventType.ClearCanvas, {});
     }
 }
 
@@ -384,13 +348,13 @@ class PlayerJoined implements IWesketchEventHandler {
 
         if (existingPlayer === undefined) {
             server.state.players.push(player);
-            server.sendServerEvent(WesketchEventType.PlaySound, {
+            server.emitter.sendServerEvent(WesketchEventType.PlaySound, {
                 name: 'playerJoined',
                 userId: player.userId,
                 global: false
             });
-            server.sendServerEvent(WesketchEventType.SystemMessage, { message: `${player.name} joined the game` });
-            server.sendServerEvent(WesketchEventType.UpdateGameState, server.state);
+            server.emitter.sendServerEvent(WesketchEventType.SystemMessage, { message: `${player.name} joined the game` });
+            server.emitter.sendServerEvent(WesketchEventType.UpdateGameState, server.state);
         }
 
     }
@@ -402,12 +366,12 @@ class PlayerLeft implements IWesketchEventHandler {
             return;
         }
         server.state.players = server.state.players.filter(p => p.userId !== event.userId)
-        server.sendServerEvent(WesketchEventType.SystemMessage, { message: `${event.userName} left the game` });
-        server.sendServerEvent(WesketchEventType.UpdateGameState, server.state);
+        server.emitter.sendServerEvent(WesketchEventType.SystemMessage, { message: `${event.userName} left the game` });
+        server.emitter.sendServerEvent(WesketchEventType.UpdateGameState, server.state);
     }
 }
 
-class PlayerReady implements IWesketchEventHandler {
+class PlayerReadyHandler implements IWesketchEventHandler {
     handle = (event: IWesketchEvent, server: WesketchServer) => {
         if (event.type !== WesketchEventType.PlayerReady) {
             return;
@@ -426,20 +390,21 @@ class PlayerReady implements IWesketchEventHandler {
 
         if (server.state.players.every(p => p.isReady) && server.state.players.length > 1) {
             server.setDrawingPlayer();
-            server.sendServerEvent(WesketchEventType.SystemMessage, { message: `All players are ready, starting game in ${server.START_ROUND_DURATION} seconds!` });
-            server.startTimer(server.START_ROUND_DURATION, server.startRound);
+            server.emitter.sendServerEvent(WesketchEventType.SystemMessage, { message: `All players are ready, starting game in ${server.START_ROUND_DURATION} seconds!` });
+            // server.startTimer(server.START_ROUND_DURATION, server.startRound);
+            server.emitter.sendServerEvent(WesketchEventType.StartDrawing, {});
         }
 
-        server.sendServerEvent(WesketchEventType.PlaySound, {
+        server.emitter.sendServerEvent(WesketchEventType.PlaySound, {
             name: 'playerReady',
             userId: event.userId,
             global: false
         });
-        server.sendServerEvent(WesketchEventType.UpdateGameState, server.state);
+        server.emitter.sendServerEvent(WesketchEventType.UpdateGameState, server.state);
     }
 }
 
-class Message implements IWesketchEventHandler {
+class MessageHandler implements IWesketchEventHandler {
     handle = (event: IWesketchEvent, server: WesketchServer) => {
         if (event.type !== WesketchEventType.Message) {
             return;
@@ -466,12 +431,12 @@ class Message implements IWesketchEventHandler {
             }
 
             // Send message to clients
-            server.sendServerEvent(WesketchEventType.PlaySound, {
+            server.emitter.sendServerEvent(WesketchEventType.PlaySound, {
                 name: 'playerGuessedTheWord',
                 userId: player.userId,
                 global: false
             });
-            server.sendServerEvent(WesketchEventType.SystemMessage, {
+            server.emitter.sendServerEvent(WesketchEventType.SystemMessage, {
                 message: `${event.userName} guessed the word!`
             });
 
@@ -501,14 +466,14 @@ class Message implements IWesketchEventHandler {
             }, 0);
             if (playersRemaining === 0) {
                 state.timer.remaining = 0;
-                server.sendServerEvent(WesketchEventType.SystemMessage, {
+                server.emitter.sendServerEvent(WesketchEventType.SystemMessage, {
                     message: `All players guessed the word!`
                 });
             }
 
             // Reduce timer after first guess
             if (firstGuess && state.timer.remaining > server.FIRST_GUESS_TIME_REMAINING) {
-                server.sendServerEvent(WesketchEventType.PlaySound, {
+                server.emitter.sendServerEvent(WesketchEventType.PlaySound, {
                     name: 'timerTension',
                     userId: player.userId,
                     global: true
@@ -516,40 +481,40 @@ class Message implements IWesketchEventHandler {
                 state.timer.remaining = server.FIRST_GUESS_TIME_REMAINING;
             }
 
-            server.sendServerEvent(WesketchEventType.UpdateGameState, server.state);
+            server.emitter.sendServerEvent(WesketchEventType.UpdateGameState, server.state);
             return;
         }
 
         // Someone is close
         const isClose = guessIsClose(event.value.message, state.currentWord);
         if (state.phase === PhaseTypes.Drawing && isClose) {
-            server.sendServerEvent(WesketchEventType.PlaySound, {
+            server.emitter.sendServerEvent(WesketchEventType.PlaySound, {
                 name: 'playerIsClose',
                 userId: event.userId,
                 global: false
             });
-            server.sendServerEvent(WesketchEventType.SystemMessage, {
+            server.emitter.sendServerEvent(WesketchEventType.SystemMessage, {
                 message: `${event.userName} is close...`
             });
             return;
         }
 
         // Bounce event if not correct or close
-        server.sendEvent(event);
+        server.emitter.sendEvent(event);
     }
 }
 
-class Draw implements IWesketchEventHandler {
+class DrawHandler implements IWesketchEventHandler {
     handle = (event: IWesketchEvent, server: WesketchServer) => {
         if (event.type !== WesketchEventType.Draw) {
             return;
         }
 
-        server.sendEvent(event);
+        server.emitter.sendEvent(event);
     }
 }
 
-class GiveUp implements IWesketchEventHandler {
+class GiveUpHandler implements IWesketchEventHandler {
     handle = (event: IWesketchEvent, server: WesketchServer) => {
         if (event.type !== WesketchEventType.GiveUp) {
             return;
@@ -557,13 +522,13 @@ class GiveUp implements IWesketchEventHandler {
 
         server.state.timer.remaining = 0;
 
-        server.sendServerEvent(WesketchEventType.SystemMessage, {
+        server.emitter.sendServerEvent(WesketchEventType.SystemMessage, {
             message: `${event.userName} gave up trying to draw the stupid word`
         });
     }
 }
 
-class GiveHint implements IWesketchEventHandler {
+class GiveHintHandler implements IWesketchEventHandler {
     handle = (event: IWesketchEvent, server: WesketchServer) => {
         if (event.type !== WesketchEventType.GiveHint) {
             return;
@@ -577,34 +542,34 @@ class GiveHint implements IWesketchEventHandler {
         let message = server.state.hintsGiven > 1
             ? `${event.userName} presents yet another hint!`
             : `${event.userName} presents a hint!`;
-        server.sendServerEvent(WesketchEventType.SystemMessage, { message });
-        server.sendServerEvent(WesketchEventType.UpdateGameState, server.state);
+        server.emitter.sendServerEvent(WesketchEventType.SystemMessage, { message });
+        server.emitter.sendServerEvent(WesketchEventType.UpdateGameState, server.state);
     }
 }
 
-class ClearCanvas implements IWesketchEventHandler {
+class ClearCanvasHandler implements IWesketchEventHandler {
     handle = (event: IWesketchEvent, server: WesketchServer) => {
         if (event.type !== WesketchEventType.ClearCanvas) {
             return;
         }
 
-        server.sendEvent(event);
+        server.emitter.sendEvent(event);
     }
 }
 
 // TODO: group these events into ChangeDrawSettings ?
-class ChangeColor implements IWesketchEventHandler {
+class ChangeColorHandler implements IWesketchEventHandler {
     handle = (event: IWesketchEvent, server: WesketchServer) => {
         if (event.type !== WesketchEventType.ChangeColor) {
             return;
         }
 
         server.state.primaryColor = event.value;
-        server.sendServerEvent(WesketchEventType.UpdateGameState, server.state);
+        server.emitter.sendServerEvent(WesketchEventType.UpdateGameState, server.state);
     }
 }
 
-class ChangeBrushSize implements IWesketchEventHandler {
+class ChangeBrushSizeHandler implements IWesketchEventHandler {
     handle = (event: IWesketchEvent, server: WesketchServer) => {
         if (event.type !== WesketchEventType.ChangeBrushSize) {
             return;
@@ -614,12 +579,12 @@ class ChangeBrushSize implements IWesketchEventHandler {
 
         if (newBrushSize > 0 && newBrushSize <= 24) {
             server.state.brushSize = newBrushSize;
-            server.sendServerEvent(WesketchEventType.UpdateGameState, server.state);
+            server.emitter.sendServerEvent(WesketchEventType.UpdateGameState, server.state);
         }
     }
 }
 
-class ResetGame implements IWesketchEventHandler {
+class ResetGameHandler implements IWesketchEventHandler {
     handle = (event: IWesketchEvent, server: WesketchServer) => {
         if (event.type !== WesketchEventType.ResetGame) {
             return;
@@ -629,7 +594,7 @@ class ResetGame implements IWesketchEventHandler {
     }
 }
 
-class SaveDrawing implements IWesketchEventHandler {
+class SaveDrawingHandler implements IWesketchEventHandler {
     handle = (event: IWesketchEvent, server: WesketchServer) => {
         if (event.type !== WesketchEventType.SaveDrawing) {
             return;
@@ -651,13 +616,22 @@ class SaveDrawing implements IWesketchEventHandler {
     }
 }
 
-class UpdateGameState implements IWesketchEventHandler {
+class UpdateGameStateHandler implements IWesketchEventHandler {
     handle(event: IWesketchEvent, server: WesketchServer): void {
         if (event.type !== WesketchEventType.UpdateGameState) {
             return;
         }
 
         server.state = event.value;
-        server.sendEvent(event);
+        server.emitter.sendEvent(event);
+    }
+}
+
+class StartDrawingHandler implements IWesketchEventHandler {
+    handle(event: IWesketchEvent, server: WesketchServer): void {
+        if (event.type !== WesketchEventType.StartDrawing) {
+            return;
+        }
+        console.log('start drawing!');        
     }
 }
