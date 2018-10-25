@@ -121,7 +121,9 @@ export class WordsEndpoint implements IEndpoint {
             .then(words => {
                 const result = {
                     count,
-                    totalPages: Math.floor(count / take),
+                    totalPages: Math.ceil(count / take),
+                    currentPage: page + 1,
+                    take,
                     words
                 };
                 response.json(result);
