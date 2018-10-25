@@ -88,6 +88,8 @@ interface IWesketchGameState {
 export class WesketchServer {
     private _io: SocketIO.Namespace;
 
+    private handlers: IWesketchEventHandler[];
+
     public state: IWesketchGameState;
     static DEFAULT_STATE: IWesketchGameState = {
         debugMode: false,
@@ -142,6 +144,22 @@ export class WesketchServer {
                 this.clientDisconnected(client.id);
             })
         });
+
+        this.handlers = [
+            new PlayerJoined(),
+            new PlayerLeft(),
+            new PlayerReady(),
+            new Message(),
+            new Draw(),
+            new GiveUp(),
+            new GiveHint(),
+            new ClearCanvas(),
+            new ChangeColor(),
+            new ChangeBrushSize(),
+            new ResetGame(),
+            new SaveDrawing(),
+            new UpdateGameState(),
+        ];
     }
 
     clientDisconnected(clientId: string) {
@@ -180,54 +198,9 @@ export class WesketchServer {
     }
 
     handleEvent(event: IWesketchEvent) {
-        switch (event.type) {
-            case WesketchEventType.PlayerJoined:
-                new PlayerJoined().handle(event, this);
-                break;
-            case WesketchEventType.PlayerLeft:
-                new PlayerLeft().handle(event, this);
-                break;
-            case WesketchEventType.PlayerReady:
-                new PlayerReady().handle(event, this);
-                break;
-            case WesketchEventType.Message:
-                new Message().handle(event, this);
-                break;
-            case WesketchEventType.Draw:
-                new Draw().handle(event, this);
-                break;
-            case WesketchEventType.GiveUp:
-                new GiveUp().handle(event, this);
-                break;
-            case WesketchEventType.GiveHint:
-                new GiveHint().handle(event, this);
-                break;
-            case WesketchEventType.ClearCanvas:
-                new ClearCanvas().handle(event, this);
-                break;
-            case WesketchEventType.ChangeColor:
-                new ChangeColor().handle(event, this);
-                break;
-            case WesketchEventType.ChangeBrushSize:
-                new ChangeBrushSize().handle(event, this);
-                break;
-            case WesketchEventType.ResetGame:
-                new ResetGame().handle(event, this);
-                break;
-            case WesketchEventType.SaveDrawing:
-                new SaveDrawing().handle(event, this);
-                break;
-            case WesketchEventType.UpdateGameState:
-                new UpdateGameState().handle(event, this);
-                break;
-            default:
-                this.sendServerEvent(WesketchEventType.ServerError,
-                    {
-                        message: `No eventhandler found for event: ${WesketchEventType[event.type]}`,
-                        event
-                    });
-                break;
-        }
+        this.handlers.forEach((handler: IWesketchEventHandler) => {
+            handler.handle(event, this);
+        });
     }
 
     sendServerEvent(type: WesketchEventType, value: any) {
@@ -376,6 +349,10 @@ interface IWesketchEventHandler {
 
 class PlayerJoined implements IWesketchEventHandler {
     handle = (event: IWesketchEvent, server: WesketchServer) => {
+        if (event.type !== WesketchEventType.PlayerJoined) {
+            return;
+        }
+
         const player = {
             clientId: event.client,
             userId: event.userId,
@@ -406,6 +383,9 @@ class PlayerJoined implements IWesketchEventHandler {
 
 class PlayerLeft implements IWesketchEventHandler {
     handle = (event: IWesketchEvent, server: WesketchServer) => {
+        if (event.type !== WesketchEventType.PlayerLeft) {
+            return;
+        }
         server.state.players = server.state.players.filter(p => p.userId !== event.userId)
         server.sendServerEvent(WesketchEventType.SystemMessage, { message: `${event.userName} left the game` });
         server.sendServerEvent(WesketchEventType.UpdateGameState, server.state);
@@ -414,6 +394,9 @@ class PlayerLeft implements IWesketchEventHandler {
 
 class PlayerReady implements IWesketchEventHandler {
     handle = (event: IWesketchEvent, server: WesketchServer) => {
+        if (event.type !== WesketchEventType.PlayerReady) {
+            return;
+        }
 
         // Toggle ready is only avaliable in Lobby-phase
         if (server.state.phase !== PhaseTypes.Lobby) {
@@ -443,6 +426,10 @@ class PlayerReady implements IWesketchEventHandler {
 
 class Message implements IWesketchEventHandler {
     handle = (event: IWesketchEvent, server: WesketchServer) => {
+        if (event.type !== WesketchEventType.Message) {
+            return;
+        }
+
         const { state } = server;
         let player = state.players.find(p => p.userId === event.userId);
         if (player === undefined) {
@@ -539,12 +526,20 @@ class Message implements IWesketchEventHandler {
 
 class Draw implements IWesketchEventHandler {
     handle = (event: IWesketchEvent, server: WesketchServer) => {
+        if (event.type !== WesketchEventType.Draw) {
+            return;
+        }
+
         server.sendEvent(event);
     }
 }
 
 class GiveUp implements IWesketchEventHandler {
     handle = (event: IWesketchEvent, server: WesketchServer) => {
+        if (event.type !== WesketchEventType.GiveUp) {
+            return;
+        }
+
         server.state.timer.remaining = 0;
 
         server.sendServerEvent(WesketchEventType.SystemMessage, {
@@ -555,6 +550,10 @@ class GiveUp implements IWesketchEventHandler {
 
 class GiveHint implements IWesketchEventHandler {
     handle = (event: IWesketchEvent, server: WesketchServer) => {
+        if (event.type !== WesketchEventType.GiveHint) {
+            return;
+        }
+
         if (server.state.hintsGiven >= server.MAX_HINTS_ALLOWED) {
             return;
         }
@@ -570,6 +569,10 @@ class GiveHint implements IWesketchEventHandler {
 
 class ClearCanvas implements IWesketchEventHandler {
     handle = (event: IWesketchEvent, server: WesketchServer) => {
+        if (event.type !== WesketchEventType.ClearCanvas) {
+            return;
+        }
+
         server.sendEvent(event);
     }
 }
@@ -577,6 +580,10 @@ class ClearCanvas implements IWesketchEventHandler {
 // TODO: group these events into ChangeDrawSettings ?
 class ChangeColor implements IWesketchEventHandler {
     handle = (event: IWesketchEvent, server: WesketchServer) => {
+        if (event.type !== WesketchEventType.ChangeColor) {
+            return;
+        }
+
         server.state.primaryColor = event.value;
         server.sendServerEvent(WesketchEventType.UpdateGameState, server.state);
     }
@@ -584,6 +591,10 @@ class ChangeColor implements IWesketchEventHandler {
 
 class ChangeBrushSize implements IWesketchEventHandler {
     handle = (event: IWesketchEvent, server: WesketchServer) => {
+        if (event.type !== WesketchEventType.ChangeBrushSize) {
+            return;
+        }
+
         let newBrushSize = server.state.brushSize + +event.value;
 
         if (newBrushSize > 0 && newBrushSize <= 24) {
@@ -595,12 +606,20 @@ class ChangeBrushSize implements IWesketchEventHandler {
 
 class ResetGame implements IWesketchEventHandler {
     handle = (event: IWesketchEvent, server: WesketchServer) => {
+        if (event.type !== WesketchEventType.ResetGame) {
+            return;
+        }
+
         server.resetGame();
     }
 }
 
 class SaveDrawing implements IWesketchEventHandler {
     handle = (event: IWesketchEvent, server: WesketchServer) => {
+        if (event.type !== WesketchEventType.SaveDrawing) {
+            return;
+        }
+
         const data = event.value.data as string;
         const drawing: IDrawing = {
             player: event.value.player,
@@ -619,6 +638,10 @@ class SaveDrawing implements IWesketchEventHandler {
 
 class UpdateGameState implements IWesketchEventHandler {
     handle(event: IWesketchEvent, server: WesketchServer): void {
+        if (event.type !== WesketchEventType.UpdateGameState) {
+            return;
+        }
+
         server.state = event.value;
         server.sendEvent(event);
     }
