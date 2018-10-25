@@ -1,4 +1,6 @@
+
 import { WORDLIST } from "./wordlist-new";
+import { WesketchEmitter } from "./wesketch-emitter";
 import { randomElement, guessIsClose } from "../shared/utils";
 
 enum WesketchEventType {
@@ -79,6 +81,8 @@ interface IWesketchGameState {
     brushSize: number;
 }
 
+
+
 /**
  * WesketchServer
  * init: initializes server with sockets, routes events to handleEvent-function
@@ -88,6 +92,7 @@ interface IWesketchGameState {
 export class WesketchServer {
     private _io: SocketIO.Namespace;
 
+    private emitter: WesketchEmitter;
     private handlers: IWesketchEventHandler[];
 
     public state: IWesketchGameState;
@@ -124,12 +129,21 @@ export class WesketchServer {
     intervalId: any;
 
     constructor(io: SocketIO.Server) {
-        this._io = io.of('wesketch');
+        this.emitter = new WesketchEmitter(io);
 
+        this.emitter.on('event', value => {
+            console.log('new event: ', value);
+        });
+        this.emitter.emit('event', 'a');
+        this.emitter.send({ message: 'weeee' });
+        this.emitter.send({ message: 'weeee 2' });
+
+        // Default values
         this.state = JSON.parse(JSON.stringify(WesketchServer.DEFAULT_STATE));
-
         this.intervalId = 0;
 
+        // Sockets
+        this._io = io.of('wesketch');
         this._io.on('connection', (client: SocketIO.Socket) => {
             // console.log('### Client Connected')
 
@@ -145,6 +159,7 @@ export class WesketchServer {
             })
         });
 
+        // Initialize handlers
         this.handlers = [
             new PlayerJoined(),
             new PlayerLeft(),

@@ -108,11 +108,15 @@ export class Server {
         router.options('*', cors(corsOptions))
 
         // DEBUG, list routes registerd
-        router.stack.map(stack => {
-            if (stack && stack.route) {
-                console.log(stack.route.methods, stack.route.path);
-            }
-        })
+        const endpointCount = router.stack.reduce((n, endpoint) => {
+            return n + 1;
+        }, 0)
+        console.log('Number of endpoints: ' + endpointCount);
+        // router.stack.map(stack => {
+        //     if (stack && stack.route) {
+        //         console.log(stack.route.methods, stack.route.path);
+        //     }
+        // })
     }
 
     public start() {
