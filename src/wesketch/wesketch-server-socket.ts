@@ -10,7 +10,8 @@ export class WesketchServerSocket {
         this._io.on('connection', (client: SocketIO.Socket) => {
             // console.log('### Client Connected')
 
-            client.on('event', (event: any) => {
+            client.on('event', (event: IWesketchEvent) => {
+                event.clientId = client.id;
                 onEvent(event);
             })
 
@@ -22,7 +23,7 @@ export class WesketchServerSocket {
 
     sendServerEvent = (type: WesketchEventType, value: any) => {
         const event = {
-            client: 'system',
+            clientId: 'system',
             userId: 'system',
             userName: 'system',
             timestamp: new Date(),
@@ -34,7 +35,7 @@ export class WesketchServerSocket {
 
     sendEvent = (event: IWesketchEvent, serverEvent: boolean = false) => {
         if (serverEvent) {
-            event.client = 'system';
+            event.clientId = 'system';
             event.userId = 'system';
             event.userName = 'system';
             event.timestamp = new Date()
