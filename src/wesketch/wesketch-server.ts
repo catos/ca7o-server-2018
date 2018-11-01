@@ -90,7 +90,7 @@ export interface IWesketchGameState {
 export class WesketchServer {
 
     public socket: WesketchServerSocket;
-    
+
     public state: IWesketchGameState;
     static DEFAULT_STATE: IWesketchGameState = {
         debugMode: false,
@@ -108,7 +108,6 @@ export class WesketchServer {
         secondaryColor: '#ffffff',
         brushSize: 3
     };
-    public drawingOrder: string[] = [];
     public drawings: IDrawing[] = [];
 
     public readonly MAX_HINTS_ALLOWED: number = 3;
@@ -165,25 +164,96 @@ export class WesketchServer {
 
     // TODO: remove / move / refactor
     setDrawingPlayer() {
-        const sortedPlayers = this.state.players.sort((a, b) => {
-            if (a.drawCount > b.drawCount) {
-                return 1;
-            }
+        // console.log(this.state.players);
+        
+        // // Fetch next drawing player
+        // const drawingPlayer = this.state.players
+        //     .filter(p => p.drawCount < this.DRAWINGS_PER_PLAYER)
+        //     .filter(p => p.isDrawing === false)
+        //     .sort(_ => Math.random() - 0.5)
+        //     .pop();
+        
+        // // Reset players
+        // this.state.players.map(p => {
+        //     p.isDrawing = false;
+        //     p.guessedWord = false;
+        // });
 
-            if (b.drawCount > a.drawCount) {
-                return -1;
-            }
+        // // Set drawing player
+        // drawingPlayer.isDrawing = true;
+        // drawingPlayer.drawCount += 1;
 
-            return 0;
-        });
-        const drawingPlayer = sortedPlayers[0];
 
-        this.state.players.map(player => {
-            if (player.userId == drawingPlayer.userId) {
-                player.isDrawing = true;
-                player.drawCount += 1;
+        // TODO: round robin!
+        var players = [ 
+            { name: 'thomas', isDrawing: false },
+            { name: 'kim', isDrawing: false },
+            { name: 'c2', isDrawing: false },
+            { name: 'esp', isDrawing: false },
+        ];
+        
+        let p = next(players);
+        console.log('1', p, players);
+        
+        p = next(players);
+        console.log('2', p, players);
+        
+        p = next(players);
+        console.log('3', p, players);
+        
+        p = next(players);
+        console.log('4', p, players);
+        
+        p = next(players);
+        console.log('5', p, players);
+        
+        p = next(players);
+        console.log('6', p, players);
+        
+        p = next(players);
+        console.log('7', p, players);
+        
+        p = next(players);
+        console.log('8', p, players);
+        
+        p = next(players);
+        console.log('9', p, players);
+        
+        
+        function next(ps) {
+            /* const ps = [...players] */;
+        
+            // Noone => First
+          const isDrawing = ps.find(p => p.isDrawing);
+          if (isDrawing === undefined) {
+              ps[0].isDrawing = true;
+            return ps[0];
+          }
+        
+            // Last => First
+          const last = ps[ps.length - 1];
+          if (last.isDrawing) {
+                last.isDrawing = false;
+              ps[0].isDrawing = true;
+            return ps[0];
+          }
+        
+            // Next
+          let next = null;
+          let prev = null;
+          ps.forEach(p => {
+            if (prev !== null && prev.isDrawing) {
+                next = p;
+              prev.isDrawing = false;
+                next.isDrawing = true;
+              return;
             }
-        });
+            
+            prev = p;
+          });
+          
+          return next;
+        }
     }
 
     onEvent = (event: IWesketchEvent) => {
@@ -259,12 +329,6 @@ export class WesketchServer {
         this.socket.sendServerEvent(
             WesketchEventType.SystemMessage,
             { message: `The word was: ${this.state.currentWord}` });
-
-        // Reset players
-        this.state.players.map(p => {
-            p.isDrawing = false;
-            p.guessedWord = false;
-        });
 
         // Choose next drawing player
         this.setDrawingPlayer();
@@ -378,15 +442,6 @@ class PlayerReadyHandler implements IWesketchEventHandler {
         });
 
         if (server.state.players.every(p => p.isReady) && server.state.players.length > 1) {
-            // Set drawing order
-            
-            // TODO: Drawing Order
-            // !!server.drawingOrder = server.state.players.map
-            // !!x3
-            // !!shuffle
-            // !!log
-
-
             // TODO: refactor... Set drawing player
             server.setDrawingPlayer();
             server.socket.sendServerEvent(WesketchEventType.SystemMessage, { message: `All players are ready, starting game in ${server.START_ROUND_DURATION} seconds!` });
