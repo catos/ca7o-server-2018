@@ -16,7 +16,7 @@ export class WesketchServerSocket {
             })
 
             client.on('disconnect', () => {
-                console.log('### Client Disconnected: ', client.id);
+                console.log(`### [WesketchServerSocket.disconnect] client.id: ${client.id}`);
             })
         });
     }

@@ -149,116 +149,52 @@ export class WesketchServer {
         this.socket = new WesketchServerSocket(io, this.onEvent);
     }
 
-    clientDisconnected(clientId: string) {
+    // TODO: remove / move / refactor
+    setDrawingPlayer() {
         const { players } = this.state;
 
-        const player = players.find(p => p.clientId === clientId);
-        if (player === undefined) {
+        this.state.players.map(p => {
+            p.guessedWord = false;
+        });
+
+        // None = First
+        const isDrawing = players.find(p => p.isDrawing);
+        if (isDrawing === undefined) {
+            players[0].isDrawing = true;
+            players[0].drawCount += 1;
             return;
         }
 
-        this.state.players = players.filter(p => p.clientId !== clientId)
-        this.socket.sendServerEvent(WesketchEventType.UpdateGameState, this.state);
-        this.socket.sendServerEvent(WesketchEventType.SystemMessage, { message: `${player.name} disconnected` });
-    }
+        // Last = First
+        const last = players[players.length - 1];
+        if (last.isDrawing) {
+            last.isDrawing = false;
+            players[0].isDrawing = true;
+            players[0].drawCount += 1;
+            return;
+        }
 
-    // TODO: remove / move / refactor
-    setDrawingPlayer() {
-        // console.log(this.state.players);
-        
-        // // Fetch next drawing player
-        // const drawingPlayer = this.state.players
-        //     .filter(p => p.drawCount < this.DRAWINGS_PER_PLAYER)
-        //     .filter(p => p.isDrawing === false)
-        //     .sort(_ => Math.random() - 0.5)
-        //     .pop();
-        
-        // // Reset players
-        // this.state.players.map(p => {
-        //     p.isDrawing = false;
-        //     p.guessedWord = false;
-        // });
-
-        // // Set drawing player
-        // drawingPlayer.isDrawing = true;
-        // drawingPlayer.drawCount += 1;
-
-
-        // TODO: round robin!
-        var players = [ 
-            { name: 'thomas', isDrawing: false },
-            { name: 'kim', isDrawing: false },
-            { name: 'c2', isDrawing: false },
-            { name: 'esp', isDrawing: false },
-        ];
-        
-        let p = next(players);
-        console.log('1', p, players);
-        
-        p = next(players);
-        console.log('2', p, players);
-        
-        p = next(players);
-        console.log('3', p, players);
-        
-        p = next(players);
-        console.log('4', p, players);
-        
-        p = next(players);
-        console.log('5', p, players);
-        
-        p = next(players);
-        console.log('6', p, players);
-        
-        p = next(players);
-        console.log('7', p, players);
-        
-        p = next(players);
-        console.log('8', p, players);
-        
-        p = next(players);
-        console.log('9', p, players);
-        
-        
-        function next(ps) {
-            /* const ps = [...players] */;
-        
-            // Noone => First
-          const isDrawing = ps.find(p => p.isDrawing);
-          if (isDrawing === undefined) {
-              ps[0].isDrawing = true;
-            return ps[0];
-          }
-        
-            // Last => First
-          const last = ps[ps.length - 1];
-          if (last.isDrawing) {
-                last.isDrawing = false;
-              ps[0].isDrawing = true;
-            return ps[0];
-          }
-        
-            // Next
-          let next = null;
-          let prev = null;
-          ps.forEach(p => {
+        // Next
+        let next: IPlayer = null;
+        let prev: IPlayer = null;
+        players.forEach((p: IPlayer) => {
             if (prev !== null && prev.isDrawing) {
                 next = p;
-              prev.isDrawing = false;
+                prev.isDrawing = false;
                 next.isDrawing = true;
-              return;
+                next.drawCount += 1;
+                return;
             }
-            
+
             prev = p;
-          });
-          
-          return next;
-        }
+        });
+
+        return;
     }
 
     onEvent = (event: IWesketchEvent) => {
         if (event.type !== WesketchEventType.Draw) {
-            console.log(`### [event] client.id: ${event.clientId}, timestamp: ${event.timestamp}, type: ${WesketchEventType[event.type]}`);
+            console.log(`### [ WesketchServerSocket.onEvent ]  event.userId: ${event.userId}, type: ${WesketchEventType[event.type]}`);
         }
 
         this.handlers.forEach((handler: IWesketchEventHandler) => {
@@ -272,6 +208,7 @@ export class WesketchServer {
         timer.remaining = duration;
         this.intervalId = setInterval(() => {
             if (timer.remaining <= 0) {
+                console.log('clearInterval, remaining: ' + timer.remaining);
                 clearInterval(this.intervalId);
                 next();
                 return;
@@ -315,9 +252,11 @@ export class WesketchServer {
             return;
         }
 
-        // Request drawing player to save image
+        // Request drawing player to save image        
         const drawingPlayer = this.state.players.find(p => p.isDrawing);
-        this.socket.sendServerEvent(WesketchEventType.SaveDrawing, { player: drawingPlayer.name, word: this.state.currentWord });
+        if (drawingPlayer !== undefined) {
+            this.socket.sendServerEvent(WesketchEventType.SaveDrawing, { player: drawingPlayer.name, word: this.state.currentWord });
+        }
 
         // Set phase to endRound
         this.state.phase = PhaseTypes.RoundEnd;
@@ -360,11 +299,17 @@ export class WesketchServer {
         this.socket.sendServerEvent(WesketchEventType.GetDrawings, this.drawings);
     }
 
-    resetGame = () => {
-        clearInterval(this.intervalId);
-        this.state = JSON.parse(JSON.stringify(WesketchServer.DEFAULT_STATE));
+    resetGame = (reason: string) => {
 
-        this.socket.sendServerEvent(WesketchEventType.SystemMessage, { message: 'Game has been reset' });
+        // Stop timer
+        clearInterval(this.intervalId);
+
+        // Reset gamestate but keep players
+        const players = {...this.state.players};
+        this.state = JSON.parse(JSON.stringify(WesketchServer.DEFAULT_STATE));
+        this.state.players = players;
+
+        this.socket.sendServerEvent(WesketchEventType.SystemMessage, { message: `Game has been reset: ${reason}` });
         this.socket.sendServerEvent(WesketchEventType.UpdateGameState, this.state);
         this.socket.sendServerEvent(WesketchEventType.ClearCanvas, {});
     }
@@ -396,6 +341,8 @@ class PlayerJoined implements IWesketchEventHandler {
             guessedWord: false
         };
 
+        console.log(`### [ PlayerJoined ] players.length ${server.state.players.length}`);
+
         const existingPlayer = server.state.players
             .find((p: IPlayer) => p.userId === player.userId);
 
@@ -418,7 +365,26 @@ class PlayerLeft implements IWesketchEventHandler {
         if (event.type !== WesketchEventType.PlayerLeft) {
             return;
         }
+        console.log(`### [ PlayerLeft ] event: ${event.userId} - ${event.userName}`);
+
+        // If leaving player is drawing
+        const leavingPlayer = server.state.players.find(p => p.userId === event.userId);
+        console.log(`### [ PlayerLeft ] players.length: ${server.state.players.length}`);
+        console.log(`### [ PlayerLeft ] player: ${leavingPlayer.userId} - ${leavingPlayer.name}`);
+        // TODO: Reset timer if leaving player was drawing
+        // if (leavingPlayer.isDrawing) {
+        //     server.state.timer.remaining = 0;
+        // }
+
+        // Update players
         server.state.players = server.state.players.filter(p => p.userId !== event.userId)
+        console.log(`### [ PlayerLeft ] players.length: ${server.state.players.length}`);
+
+        // Reset game if only 1 player left
+        if (server.state.players.length <= 1) {
+            server.resetGame('too few players left to continue');
+        }
+
         server.socket.sendServerEvent(WesketchEventType.SystemMessage, { message: `${event.userName} left the game` });
         server.socket.sendServerEvent(WesketchEventType.UpdateGameState, server.state);
     }
@@ -643,7 +609,7 @@ class ResetGameHandler implements IWesketchEventHandler {
             return;
         }
 
-        server.resetGame();
+        server.resetGame('a reset button was clicked!');
     }
 }
 
