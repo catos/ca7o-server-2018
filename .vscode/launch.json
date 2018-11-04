@@ -8,17 +8,29 @@
             "type": "node",
             "request": "attach",
             "name": "Attach",
-            "port": 9229, 
-            "sourceMaps": true
+            "port": 3001, // 9229, 
+            "sourceMaps": true,
         },
         {
             "type": "node",
             "request": "launch",
             "name": "Launch Program",
+            "runtimeExecutable": "node",
             "program": "${workspaceFolder}\\dist\\server.js",
             "outFiles": [
                 "${workspaceFolder}/**/*.js"
             ]
+        },
+        {
+            "type": "node",
+            "request": "launch",
+            "name": "Launch via NPM",
+            "runtimeExecutable": "npm",
+            "runtimeArgs": [
+                "run-script",
+                "debug"
+            ],
+            "port": 3001
         }
     ]
 }

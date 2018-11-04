@@ -89,10 +89,22 @@ export interface IWesketchGameState {
  */
 export class WesketchServer {
 
-    public socket: WesketchServerSocket;
+    public readonly MAX_HINTS_ALLOWED: number = 3;
+    public readonly GUESS_SCORE: number = 10;
+    public readonly FIRST_GUESS_TIME_REMAINING: number = 30;
+    public readonly START_ROUND_DURATION: number = 3;
+    public readonly ROUND_DURATION: number = 90;
+    public readonly END_ROUND_DURATION: number = 10;
+    public readonly DRAWINGS_PER_PLAYER: number = 3;
+    public readonly TIMER_DELAY: number = 1000;
 
+    public socket: WesketchServerSocket;
     public state: IWesketchGameState;
-    static DEFAULT_STATE: IWesketchGameState = {
+    public drawings: IDrawing[] = [];
+
+    private handlers: IWesketchEventHandler[];
+    private intervalId: any;
+    private static DEFAULT_STATE: IWesketchGameState = {
         debugMode: false,
         phase: PhaseTypes.Lobby,
         players: [],
@@ -108,19 +120,6 @@ export class WesketchServer {
         secondaryColor: '#ffffff',
         brushSize: 3
     };
-    public drawings: IDrawing[] = [];
-
-    public readonly MAX_HINTS_ALLOWED: number = 3;
-    public readonly GUESS_SCORE: number = 10;
-    public readonly FIRST_GUESS_TIME_REMAINING: number = 30;
-    public readonly START_ROUND_DURATION: number = 3;
-    public readonly ROUND_DURATION: number = 90;
-    public readonly END_ROUND_DURATION: number = 10;
-    public readonly DRAWINGS_PER_PLAYER: number = 3;
-    public readonly TIMER_DELAY: number = 1000;
-
-    private handlers: IWesketchEventHandler[];
-    private intervalId: any;
 
     constructor(io: SocketIO.Server) {
 
@@ -304,8 +303,16 @@ export class WesketchServer {
         // Stop timer
         clearInterval(this.intervalId);
 
-        // Reset gamestate but keep players
-        const players = {...this.state.players};
+        // Reset gamestate & players
+        let players = [...this.state.players];
+        players = players.map(p => {
+            p.drawCount = 0;
+            p.guessedWord = false;
+            p.isDrawing = false;
+            p.isReady = false;
+            p.score = 0;
+            return p;
+        })
         this.state = JSON.parse(JSON.stringify(WesketchServer.DEFAULT_STATE));
         this.state.players = players;
 
@@ -354,9 +361,9 @@ class PlayerJoined implements IWesketchEventHandler {
                 global: false
             });
             server.socket.sendServerEvent(WesketchEventType.SystemMessage, { message: `${player.name} joined the game` });
-            server.socket.sendServerEvent(WesketchEventType.UpdateGameState, server.state);
         }
 
+        server.socket.sendServerEvent(WesketchEventType.UpdateGameState, server.state);
     }
 }
 
@@ -365,28 +372,24 @@ class PlayerLeft implements IWesketchEventHandler {
         if (event.type !== WesketchEventType.PlayerLeft) {
             return;
         }
-        console.log(`### [ PlayerLeft ] event: ${event.userId} - ${event.userName}`);
 
         // If leaving player is drawing
         const leavingPlayer = server.state.players.find(p => p.userId === event.userId);
-        console.log(`### [ PlayerLeft ] players.length: ${server.state.players.length}`);
-        console.log(`### [ PlayerLeft ] player: ${leavingPlayer.userId} - ${leavingPlayer.name}`);
-        // TODO: Reset timer if leaving player was drawing
-        // if (leavingPlayer.isDrawing) {
-        //     server.state.timer.remaining = 0;
-        // }
+      
+        // Reset timer if leaving player was drawing
+        if (leavingPlayer.isDrawing) {
+            server.state.timer.remaining = 0;
+        }
 
         // Update players
         server.state.players = server.state.players.filter(p => p.userId !== event.userId)
-        console.log(`### [ PlayerLeft ] players.length: ${server.state.players.length}`);
+        server.socket.sendServerEvent(WesketchEventType.SystemMessage, { message: `${event.userName} left the game` });
+        server.socket.sendServerEvent(WesketchEventType.UpdateGameState, server.state);
 
         // Reset game if only 1 player left
         if (server.state.players.length <= 1) {
             server.resetGame('too few players left to continue');
         }
-
-        server.socket.sendServerEvent(WesketchEventType.SystemMessage, { message: `${event.userName} left the game` });
-        server.socket.sendServerEvent(WesketchEventType.UpdateGameState, server.state);
     }
 }
 

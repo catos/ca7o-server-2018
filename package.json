@@ -4,13 +4,15 @@
     "description": "",
     "main": "./dist/server.js",
     "scripts": {
+        
         "clean": "rimraf dist",
         "compile": "tsc",
+        "build": "npm run clean && npm run compile",
+
         "watch:compile": "tsc -w",
         "watch:server": "nodemon dist/server.js",
         "dev": "npm-run-all clean compile --parallel watch:compile watch:server --print-label",
-        "start": "node ./dist/server.js",
-        "build": "npm run clean && npm run compile"
+        "start": "node ./dist/server.js"
     },
     "keywords": [],
     "author": "",
