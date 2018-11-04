@@ -3,15 +3,11 @@ import { WesketchServerSocket } from "./wesketch-server-socket";
 import { randomElement, guessIsClose } from "../shared/utils";
 import { Word } from "./word.model";
 
-import { WesketchEventTypes } from "./types/WesketchEventType";
-import { PhaseTypes } from "./types/WesketchPhaseTypes";
-
-import { IWesketchEvent } from "./interfaces/IWesketchEvent";
-import { IWesketchPlayer } from "./interfaces/IWesketchPlayer";
-import { IWesketchDrawing } from "./interfaces/IWesketchDrawing";
-import { IWesketchGameSettings } from "./interfaces/IWesketchGameSettings";
-import { IWesketchGameState } from "./interfaces/IWesketchGameState";
-import { IWesketchEventHandler } from "./interfaces/IWesketchEventHandler";
+import {
+    IWesketchGameSettings, IWesketchGameState, IWesketchDrawing,
+    IWesketchEventHandler, IWesketchPlayer, IWesketchEvent
+} from "./Interfaces";
+import { PhaseTypes, WesketchEventTypes } from "./Types";
 
 /**
  * WesketchServer
@@ -262,8 +258,13 @@ export class WesketchServer {
  * EventHandlers: responds to client events, modifies gameState, may produce new events
  * TODO: move to separate files...?
  **************************************************************************************/
+{ }
 
- class PlayerJoined implements IWesketchEventHandler {
+/**
+ * PlayerJoined
+ * Adds new players to server.state.players
+ */
+class PlayerJoined implements IWesketchEventHandler {
     handle = (event: IWesketchEvent, server: WesketchServer) => {
         if (event.type !== WesketchEventTypes.PlayerJoined) {
             return;
@@ -336,24 +337,28 @@ class PlayerReadyHandler implements IWesketchEventHandler {
             return;
         }
 
+        // Reset ready on all players
         server.state.players.forEach(p => {
             if (p.userId === event.userId) {
                 p.isReady = !p.isReady;
             }
         });
 
+        // Set drawing player
         if (server.state.players.every(p => p.isReady) && server.state.players.length > 1) {
-            // TODO: refactor... Set drawing player
             server.setDrawingPlayer();
             server.socket.sendServerEvent(WesketchEventTypes.SystemMessage, { message: `All players are ready, starting game in ${server.START_ROUND_DURATION} seconds!` });
             server.startTimer(server.START_ROUND_DURATION, server.startRound);
         }
 
+        // Play sound
         server.socket.sendServerEvent(WesketchEventTypes.PlaySound, {
             name: 'playerReady',
             userId: event.userId,
             global: false
         });
+
+        // Update game state
         server.socket.sendServerEvent(WesketchEventTypes.UpdateGameState, server.state);
     }
 }
@@ -365,6 +370,8 @@ class MessageHandler implements IWesketchEventHandler {
         }
 
         const { state } = server;
+
+        // Player not found...
         let player = state.players.find(p => p.userId === event.userId);
         if (player === undefined) {
             return;
