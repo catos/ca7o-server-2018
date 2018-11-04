@@ -1,13 +1,11 @@
 import { NextFunction, Response, Request, Router } from 'express';
-import * as moment from 'moment';
 
 import { uuidv4 } from '../shared/utils';
 import { StatusCodes } from '../shared/status-codes';
 import { IEndpoint } from '../shared/endpoint.interface';
 import { AuthService } from "../auth/auth.service";
 
-import { Word, IWord, DifficultyTypes, LanguageTypes } from './word.model';
-import { WORDLIST } from './wordlist-new';
+import { Word, IWord } from './word.model';
 
 export class WordsEndpoint implements IEndpoint {
     constructor(
@@ -16,7 +14,6 @@ export class WordsEndpoint implements IEndpoint {
         private authService: AuthService) {
 
         router.all(path + '/*', this.init);
-        router.get(path + '/seed', this.authService.isAuthenticated, this.seed);
         router.get(path + '/', this.authService.isAuthenticated, this.all);
         router.get(path + '/:id', this.authService.isAuthenticated, this.get);
         router.post(path + '/', this.authService.isAuthenticated, this.create);
@@ -35,29 +32,6 @@ export class WordsEndpoint implements IEndpoint {
     init = (request: Request, response: Response, next: NextFunction): void => {
         console.log('UserEndpoint.init()');
         next();
-    }
-
-    seed = (request: Request, response: Response, next: NextFunction) => {
-        // Word.count({}, (err, count) => {
-        //     // Seed data
-        //     if (count === 0) {
-        //         WORDLIST.forEach(word => {
-        //             console.log('word: ' + word);
-        //             const ww = {
-        //                 guid: uuidv4(),
-        //                 created: moment.now(),
-        //                 word: word,
-        //                 difficulty: DifficultyTypes.Hard,
-        //                 language: LanguageTypes.English
-        //             };
-        //             Word.create(ww)
-        //                 .then(result => console.log('word: ' + word + ' added'))
-        //                 .catch(error => this.errorHandler(error, response));
-        //         });
-
-        //     }
-        //     response.json({ count });
-        // });
     }
 
     create = (request: Request, response: Response, next: NextFunction) => {

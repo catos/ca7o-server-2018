@@ -1,6 +1,7 @@
-// https://ourcodeworld.com/articles/read/445/how-to-use-event-emitters-with-es5-and-es6-in-node-js-easily
+import { IWesketchEvent } from "./interfaces/IWesketchEvent";
+import { WesketchEventTypes } from "./types/WesketchEventType";
 
-import { WesketchEventType, IWesketchEvent } from "./wesketch-server";
+// https://ourcodeworld.com/articles/read/445/how-to-use-event-emitters-with-es5-and-es6-in-node-js-easily
 
 export class WesketchServerSocket {
     private _io: SocketIO.Namespace;
@@ -21,7 +22,7 @@ export class WesketchServerSocket {
         });
     }
 
-    sendServerEvent = (type: WesketchEventType, value: any) => {
+    sendServerEvent = (type: WesketchEventTypes, value: any) => {
         const event = {
             clientId: 'system',
             userId: 'system',
