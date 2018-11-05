@@ -1,13 +1,9 @@
-import { WORDLIST } from "./wordlist-new";
 import { WesketchServerSocket } from "./wesketch-server-socket";
-import { randomElement } from "../shared/utils";
-
 import { PhaseTypes, WesketchEventTypes } from "./Types";
 import {
     IWesketchGameSettings, IWesketchGameState, IWesketchDrawing,
     IWesketchEventHandler, IWesketchPlayer, IWesketchEvent
 } from "./Interfaces";
-
 import {
     PlayerJoinedHandler, PlayerReadyHandler, MessageHandler,
     DrawHandler, GiveUpHandler, GiveHintHandler, ClearCanvasHandler,
