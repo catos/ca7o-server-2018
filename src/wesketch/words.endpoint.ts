@@ -43,8 +43,8 @@ export class WordsEndpoint implements IEndpoint {
         // Check if word already exist
         const existingWords = await Word.find({ word: newWord.word });
         if (existingWords.length) {
-            return response.json({ 
-                errors: [`The word '${newWord.word}' already exist`] 
+            return response.json({
+                errors: [`The word '${newWord.word}' already exist`]
             });
         }
 
@@ -54,14 +54,17 @@ export class WordsEndpoint implements IEndpoint {
             .catch(error => this.errorHandler(error, response));
     }
 
-    update = async(request: Request, response: Response, next: NextFunction) => {
+    update = async (request: Request, response: Response, next: NextFunction) => {
         const updatedWord = request.body as IWord;
 
         // Check if word already exist
-        const existingWords = await Word.find({ word: updatedWord.word });
+        const existingWords = await Word.find({
+            word: updatedWord.word,
+            guid: { $ne: updatedWord.guid }
+        });
         if (existingWords.length) {
-            return response.json({ 
-                errors: [`The word '${updatedWord.word}' already exist`] 
+            return response.json({
+                errors: [`The word '${updatedWord.word}' already exist`]
             });
         }
 
@@ -72,11 +75,10 @@ export class WordsEndpoint implements IEndpoint {
     }
 
     delete = (request: Request, response: Response, next: NextFunction) => {
-        Word.findByIdAndRemove(request.params.id).exec()
+        Word.findOneAndDelete({ guid: request.params.id }).exec()
             .then(result => response.json(result))
             .catch(error => this.errorHandler(error, response));
     }
-
 
     async all(request: Request, response: Response, next: NextFunction) {
         let filters = {};
