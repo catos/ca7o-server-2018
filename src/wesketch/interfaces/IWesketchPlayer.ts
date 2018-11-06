@@ -7,4 +7,5 @@ export interface IWesketchPlayer {
     drawCount: number;
     isDrawing: boolean;
     guessedWord: boolean;
+    pingCount: number;
 }

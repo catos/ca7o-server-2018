@@ -12,12 +12,14 @@ import {
     PlayerLeftHandler
 } from "./ClientHandlers";
 import { Word } from "./word.model";
+import { PingHandler } from "./ClientHandlers/PingHandler";
 
 /**
  * WesketchServer
  */
 export class WesketchServer {
 
+    public readonly PING_KICK_THRESHOLD: number = 30;
     public readonly MAX_HINTS_ALLOWED: number = 3;
     public readonly GUESS_SCORE: number = 10;
     public readonly FIRST_GUESS_TIME_REMAINING: number = 30;
@@ -65,6 +67,7 @@ export class WesketchServer {
 
         // Initialize handlers
         this.handlers = [
+            new PingHandler(),
             new PlayerJoinedHandler(),
             new PlayerLeftHandler(),
             new PlayerReadyHandler(),
@@ -83,6 +86,29 @@ export class WesketchServer {
 
         // Handle events
         this.socket = new WesketchServerSocket(io, this.onEvent);
+
+        // Ping clients
+        setInterval(() => {
+            if (this.state.players.length) {
+                this.state.players = this.state.players.map(p => {
+                    p.pingCount++;
+                    return p;
+                });
+
+                this.socket.sendServerEvent(WesketchEventTypes.Ping, {});
+
+                // Kick players with pingCount > 3
+                this.state.players.forEach(player => {
+                    if (player.pingCount > this.PING_KICK_THRESHOLD) {
+                        this.state.players = this.state.players.filter(p => p.userId !== player.userId);
+                        this.socket.sendServerEvent(WesketchEventTypes.SystemMessage, { 
+                            message: `${player.name} has not responded in ${this.PING_KICK_THRESHOLD} seconds and was kicked` });
+                        this.socket.sendServerEvent(WesketchEventTypes.UpdateGameState, this.state);
+                    }
+                });
+            }
+        }, 1000);
+
     }
 
     // TODO: remove / move / refactor
@@ -154,7 +180,7 @@ export class WesketchServer {
         }, this.TIMER_DELAY);
     }
 
-    startRound = async() => {
+    startRound = async () => {
         // Set phase to drawing
         this.state.phase = PhaseTypes.Drawing;
 
@@ -208,7 +234,7 @@ export class WesketchServer {
 
         // End game if all players have drawn DRAWINGS_PER_PLAYER times each
         if (this.state.players.every(p => p.drawCount === this.DRAWINGS_PER_PLAYER)) {
-            this.startTimer(this.END_GAME_DURATION, this.endGame);            
+            this.startTimer(this.END_GAME_DURATION, this.endGame);
             return;
         }
 
@@ -255,6 +281,7 @@ export class WesketchServer {
             p.isDrawing = false;
             p.isReady = false;
             p.score = 0;
+            p.pingCount = 0;
             return p;
         })
         this.state = JSON.parse(JSON.stringify(WesketchServer.DEFAULT_STATE));

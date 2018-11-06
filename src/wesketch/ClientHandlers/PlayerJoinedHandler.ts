@@ -17,8 +17,9 @@ export class PlayerJoinedHandler implements IWesketchEventHandler {
             score: 0,
             drawCount: 0,
             isDrawing: false,
-            guessedWord: false
-        };
+            guessedWord: false,
+            pingCount: 0
+        } as IWesketchPlayer;
 
         const existingPlayer = server.state.players
             .find((p: IWesketchPlayer) => p.userId === player.userId);

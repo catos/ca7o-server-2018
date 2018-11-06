@@ -14,11 +14,11 @@ export class WesketchServerSocket {
             client.on('event', (event: IWesketchEvent) => {
                 event.clientId = client.id;
                 onEvent(event);
-            })
+            });
 
             client.on('disconnect', () => {
                 console.log(`### [WesketchServerSocket.disconnect] client.id: ${client.id}`);
-            })
+            });
         });
     }
 
@@ -42,6 +42,5 @@ export class WesketchServerSocket {
             event.timestamp = new Date()
         }
         this._io.emit('event', event);
-        // console.log('sendEvent: ', WesketchEventType[event.type]);        
     }
 }

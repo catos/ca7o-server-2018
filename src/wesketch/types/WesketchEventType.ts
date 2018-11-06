@@ -1,10 +1,14 @@
 export enum WesketchEventTypes {
     ServerError,
+    Ping,
+
     PlayerJoined,
     PlayerLeft,
     PlayerReady,
+
     PlaySound,
     StopSound,
+
     Message,
     SystemMessage,
     Draw,
@@ -14,8 +18,10 @@ export enum WesketchEventTypes {
     ClearCanvas,
     ChangeColor,
     ChangeBrushSize,
+
     UpdateGameSettings,
     UpdateGameState,
+
     ResetGame,
     SaveDrawing,
     GetDrawings,
