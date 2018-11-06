@@ -24,6 +24,7 @@ export class WesketchServer {
     public readonly START_ROUND_DURATION: number = 3;
     public readonly ROUND_DURATION: number = 90;
     public readonly END_ROUND_DURATION: number = 10;
+    public readonly END_GAME_DURATION: number = 10;
     public readonly DRAWINGS_PER_PLAYER: number = 3;
     public readonly TIMER_DELAY: number = 1000;
 
@@ -143,7 +144,6 @@ export class WesketchServer {
         timer.remaining = duration;
         this.intervalId = setInterval(() => {
             if (timer.remaining <= 0) {
-                console.log('clearInterval, remaining: ' + timer.remaining);
                 clearInterval(this.intervalId);
                 next();
                 return;
@@ -189,12 +189,6 @@ export class WesketchServer {
     }
 
     endRound = () => {
-        // End game if all players have drawn DRAWINGS_PER_PLAYER times each
-        if (this.state.players.every(p => p.drawCount === this.DRAWINGS_PER_PLAYER)) {
-            this.endGame();
-            return;
-        }
-
         // Request drawing player to save image        
         const drawingPlayer = this.state.players.find(p => p.isDrawing);
         if (drawingPlayer !== undefined) {
@@ -211,6 +205,12 @@ export class WesketchServer {
         this.socket.sendServerEvent(
             WesketchEventTypes.SystemMessage,
             { message: `The word was: ${this.state.currentWord}` });
+
+        // End game if all players have drawn DRAWINGS_PER_PLAYER times each
+        if (this.state.players.every(p => p.drawCount === this.DRAWINGS_PER_PLAYER)) {
+            this.startTimer(this.END_GAME_DURATION, this.endGame);            
+            return;
+        }
 
         // Choose next drawing player
         this.setDrawingPlayer();

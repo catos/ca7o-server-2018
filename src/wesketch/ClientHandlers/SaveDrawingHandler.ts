@@ -7,8 +7,8 @@ export class SaveDrawingHandler implements IWesketchEventHandler {
         if (event.type !== WesketchEventTypes.SaveDrawing) {
             return;
         }
-
         const data = event.value.data as string;
+        console.log(`SaveImage received from ${event.value.player} data: ${data.length}`);
         const drawing: IWesketchDrawing = {
             player: event.value.player,
             word: event.value.word,
