@@ -34,19 +34,38 @@ export class WordsEndpoint implements IEndpoint {
         next();
     }
 
-    create = (request: Request, response: Response, next: NextFunction) => {
+    create = async (request: Request, response: Response, next: NextFunction) => {
         const newWord = request.body as IWord;
 
+        newWord.word = newWord.word.toUpperCase();
         newWord.guid = uuidv4();
 
+        // Check if word already exist
+        const existingWords = await Word.find({ word: newWord.word });
+        if (existingWords.length) {
+            return response.json({ 
+                errors: [`The word '${newWord.word}' already exist`] 
+            });
+        }
+
+        // Save new word
         Word.create(newWord)
             .then(result => response.json(result))
             .catch(error => this.errorHandler(error, response));
     }
 
-    update = (request: Request, response: Response, next: NextFunction) => {
+    update = async(request: Request, response: Response, next: NextFunction) => {
         const updatedWord = request.body as IWord;
 
+        // Check if word already exist
+        const existingWords = await Word.find({ word: updatedWord.word });
+        if (existingWords.length) {
+            return response.json({ 
+                errors: [`The word '${updatedWord.word}' already exist`] 
+            });
+        }
+
+        // Update word
         Word.findOneAndUpdate({ guid: request.params.id }, updatedWord, { new: true }).exec()
             .then(result => response.json(result))
             .catch(error => this.errorHandler(error, response));
@@ -80,7 +99,7 @@ export class WordsEndpoint implements IEndpoint {
 
         // Get document-count in collection
         const count = await Word.find(filters).countDocuments();
-        
+
         // Paging
         const take = 100;
         let page = request.query.page !== undefined ? +(request.query.page - 1) : 0;
