@@ -1,3 +1,16 @@
+
+/**
+ * https://github.com/TypeStrong/ts-loader
+ * https://webpack.js.org/plugins/commons-chunk-plugin/
+ * https://github.com/webpack/webpack/tree/master/examples/common-chunk-and-vendor-chunk
+ * https://webpack.js.org/concepts/targets/
+ * https://medium.com/code-oil/webpack-javascript-bundling-for-both-front-end-and-back-end-b95f1b429810
+ * https://www.npmjs.com/package/webpack-node-externals
+ * Google: "webpack bundle node_modules separately"
+ * https://stackoverflow.com/questions/30329337/how-to-bundle-vendor-scripts-separately-and-require-them-as-needed-with-webpack
+ * 
+ */
+
 const path = require('path');
 const nodeExternals = require('webpack-node-externals');
 
