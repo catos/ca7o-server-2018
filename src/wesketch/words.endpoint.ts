@@ -103,7 +103,7 @@ export class WordsEndpoint implements IEndpoint {
         const count = await Word.find(filters).countDocuments();
 
         // Paging
-        const take = 100;
+        const take = 128;
         let page = request.query.page !== undefined ? +(request.query.page - 1) : 0;
         query = query
             .skip(page * take)
