@@ -5,8 +5,8 @@ import morgan from 'morgan';
 import cors from 'cors';
 import socketIo from 'socket.io';
 
-import errorHandler = require('errorhandler')
-import mongoose = require('mongoose')
+import errorHandler from 'errorhandler';
+import mongoose from 'mongoose';
 
 import { serverConfig } from './server.config'
 import { AuthService } from './auth/auth.service'

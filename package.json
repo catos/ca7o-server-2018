@@ -6,7 +6,8 @@
     "scripts": {
         "clean": "rimraf dist",
         "compile": "tsc",
-        "buildwp": "webpack",
+        "buildwp": "npm run clean && webpack",
+        "buildwp-prod": "npm run clean && webpack",
         "build": "npm run clean && npm run compile",
         "watch:compile": "tsc -w",
         "watch:server": "nodemon dist/server.js",
