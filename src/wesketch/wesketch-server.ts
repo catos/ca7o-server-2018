@@ -1,9 +1,9 @@
 import { WesketchServerSocket } from "./wesketch-server-socket";
-import { PhaseTypes, WesketchEventTypes } from "./Types";
+import { PhaseTypes, WesketchEventTypes } from "./types";
 import {
     IWesketchGameSettings, IWesketchGameState, IWesketchDrawing,
     IWesketchEventHandler, IWesketchPlayer, IWesketchEvent
-} from "./Interfaces";
+} from "./interfaces";
 import {
     PlayerJoinedHandler, PlayerReadyHandler, MessageHandler,
     DrawHandler, GiveUpHandler, GiveHintHandler, ClearCanvasHandler,
@@ -90,7 +90,7 @@ export class WesketchServer {
         // Ping clients
         setInterval(() => {
             if (this.state.players.length) {
-                this.state.players = this.state.players.map(p => {
+                this.state.players = this.state.players.map((p: IWesketchPlayer) => {
                     p.pingCount++;
                     return p;
                 });
@@ -100,7 +100,7 @@ export class WesketchServer {
                 // Kick players with pingCount > 3
                 this.state.players.forEach(player => {
                     if (player.pingCount > this.PING_KICK_THRESHOLD) {
-                        this.state.players = this.state.players.filter(p => p.userId !== player.userId);
+                        this.state.players = this.state.players.filter((p: IWesketchPlayer) => p.userId !== player.userId);
                         this.socket.sendServerEvent(WesketchEventTypes.SystemMessage, { 
                             message: `${player.name} has not responded in ${this.PING_KICK_THRESHOLD} seconds and was kicked` });
                         this.socket.sendServerEvent(WesketchEventTypes.UpdateGameState, this.state);
@@ -115,12 +115,12 @@ export class WesketchServer {
     setDrawingPlayer() {
         const { players } = this.state;
 
-        this.state.players.map(p => {
+        this.state.players.map((p: IWesketchPlayer) => {
             p.guessedWord = false;
         });
 
         // None = First
-        const isDrawing = players.find(p => p.isDrawing);
+        const isDrawing = players.find((p: IWesketchPlayer) => p.isDrawing);
         if (isDrawing === undefined) {
             players[0].isDrawing = true;
             players[0].drawCount += 1;
@@ -216,7 +216,7 @@ export class WesketchServer {
 
     endRound = () => {
         // Request drawing player to save image        
-        const drawingPlayer = this.state.players.find(p => p.isDrawing);
+        const drawingPlayer = this.state.players.find((p: IWesketchPlayer) => p.isDrawing);
         if (drawingPlayer !== undefined) {
             this.socket.sendServerEvent(WesketchEventTypes.SaveDrawing, { player: drawingPlayer.name, word: this.state.currentWord });
         }
@@ -233,7 +233,7 @@ export class WesketchServer {
             { message: `The word was: ${this.state.currentWord}` });
 
         // End game if all players have drawn DRAWINGS_PER_PLAYER times each
-        if (this.state.players.every(p => p.drawCount === this.DRAWINGS_PER_PLAYER)) {
+        if (this.state.players.every((p: IWesketchPlayer) => p.drawCount === this.DRAWINGS_PER_PLAYER)) {
             this.startTimer(this.END_GAME_DURATION, this.endGame);
             return;
         }

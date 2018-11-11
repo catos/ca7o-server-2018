@@ -1,5 +1,5 @@
 import { WesketchEventTypes, PhaseTypes } from "../types";
-import { IWesketchEventHandler, IWesketchEvent } from "../interfaces";
+import { IWesketchEventHandler, IWesketchEvent, IWesketchPlayer } from "../interfaces";
 import { WesketchServer } from "../wesketch-server";
 
 export class PlayerReadyHandler implements IWesketchEventHandler {
@@ -14,14 +14,14 @@ export class PlayerReadyHandler implements IWesketchEventHandler {
         }
 
         // Reset ready on all players
-        server.state.players.forEach(p => {
+        server.state.players.forEach((p: IWesketchPlayer) => {
             if (p.userId === event.userId) {
                 p.isReady = !p.isReady;
             }
         });
 
         // Everyone is ready, start game!
-        if (server.state.players.every(p => p.isReady) && server.state.players.length > 1) {
+        if (server.state.players.every((p: IWesketchPlayer) => p.isReady) && server.state.players.length > 1) {
             server.setDrawingPlayer();
             server.socket.sendServerEvent(WesketchEventTypes.SystemMessage, { message: `All players are ready, starting game in ${server.START_ROUND_DURATION} seconds!` });
             server.startTimer(server.START_ROUND_DURATION, server.startRound);

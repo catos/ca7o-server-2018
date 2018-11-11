@@ -1,6 +1,6 @@
 import { WesketchServer } from "../wesketch-server";
 import { WesketchEventTypes } from "../types";
-import { IWesketchEventHandler, IWesketchEvent } from "../interfaces";
+import { IWesketchEventHandler, IWesketchEvent, IWesketchPlayer } from "../interfaces";
 
 export class PingHandler implements IWesketchEventHandler {
     handle(event: IWesketchEvent, server: WesketchServer): void {
@@ -8,7 +8,7 @@ export class PingHandler implements IWesketchEventHandler {
             return;
         }
 
-        server.state.players = server.state.players.map(p => {
+        server.state.players = server.state.players.map((p: IWesketchPlayer) => {
             if (p.userId === event.userId) {
                 p.pingCount = 0;
             }

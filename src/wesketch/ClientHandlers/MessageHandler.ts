@@ -1,5 +1,5 @@
 import { WesketchEventTypes, PhaseTypes } from "../types";
-import { IWesketchEventHandler, IWesketchEvent } from "../interfaces";
+import { IWesketchEventHandler, IWesketchEvent, IWesketchPlayer } from "../interfaces";
 import { WesketchServer } from "../wesketch-server";
 
 import { guessIsClose } from "../../shared/utils";
@@ -13,7 +13,7 @@ export class MessageHandler implements IWesketchEventHandler {
         const { state } = server;
 
         // Player not found...
-        let player = state.players.find(p => p.userId === event.userId);
+        let player = state.players.find((p: IWesketchPlayer) => p.userId === event.userId);
         if (player === undefined) {
             return;
         }
@@ -43,7 +43,7 @@ export class MessageHandler implements IWesketchEventHandler {
             });
 
             // Update player score
-            const finishedPlayersCount = state.players.reduce((n, player) => {
+            const finishedPlayersCount = state.players.reduce((n: number, player: IWesketchPlayer) => {
                 return (player.guessedWord && !player.isDrawing)
                     ? n + 1
                     : n;
@@ -54,14 +54,14 @@ export class MessageHandler implements IWesketchEventHandler {
             player.guessedWord = true;
 
             // Update drawing player score
-            let drawingPlayer = state.players.find(p => p.isDrawing);
+            let drawingPlayer = state.players.find((p: IWesketchPlayer) => p.isDrawing);
             let drawScore = firstGuess
                 ? 10 - (3 * state.hintsGiven)
                 : 1;
             drawingPlayer.score += drawScore;
 
             // Check if all non-drawing players guessed the word
-            const playersRemaining = state.players.reduce((n, player) => {
+            const playersRemaining = state.players.reduce((n: number, player: IWesketchPlayer) => {
                 return (!player.guessedWord && !player.isDrawing)
                     ? n + 1
                     : n;

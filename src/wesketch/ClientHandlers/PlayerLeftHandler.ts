@@ -1,5 +1,5 @@
 import { WesketchEventTypes } from "../types";
-import { IWesketchEventHandler, IWesketchEvent } from "../interfaces";
+import { IWesketchEventHandler, IWesketchEvent, IWesketchPlayer } from "../interfaces";
 import { WesketchServer } from "../wesketch-server";
 
 export class PlayerLeftHandler implements IWesketchEventHandler {
@@ -9,7 +9,7 @@ export class PlayerLeftHandler implements IWesketchEventHandler {
         }
 
         // If leaving player is drawing
-        const leavingPlayer = server.state.players.find(p => p.userId === event.userId);
+        const leavingPlayer = server.state.players.find((p: IWesketchPlayer) => p.userId === event.userId);
 
         // Reset timer if leaving player was drawing
         if (leavingPlayer.isDrawing) {
@@ -17,7 +17,7 @@ export class PlayerLeftHandler implements IWesketchEventHandler {
         }
 
         // Update players
-        server.state.players = server.state.players.filter(p => p.userId !== event.userId)
+        server.state.players = server.state.players.filter((p: IWesketchPlayer) => p.userId !== event.userId)
         server.socket.sendServerEvent(WesketchEventTypes.SystemMessage, { message: `${event.userName} left the game` });
         server.socket.sendServerEvent(WesketchEventTypes.UpdateGameState, server.state);
 
