@@ -1,6 +1,6 @@
-import { IWesketchEventHandler, IWesketchEvent } from "../Interfaces";
 import { WesketchServer } from "../wesketch-server";
-import { WesketchEventTypes } from "../Types";
+import { WesketchEventTypes } from "../types";
+import { IWesketchEventHandler, IWesketchEvent } from "../interfaces";
 
 export class PingHandler implements IWesketchEventHandler {
     handle(event: IWesketchEvent, server: WesketchServer): void {

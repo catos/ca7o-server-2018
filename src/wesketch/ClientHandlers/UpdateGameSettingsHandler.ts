@@ -1,5 +1,5 @@
-import { WesketchEventTypes } from "../Types";
-import { IWesketchEventHandler, IWesketchEvent, IWesketchGameSettings } from "../Interfaces";
+import { WesketchEventTypes } from "../types";
+import { IWesketchEventHandler, IWesketchEvent, IWesketchGameSettings } from "../interfaces";
 import { WesketchServer } from "../wesketch-server";
 import { Word } from "../word.model";
 

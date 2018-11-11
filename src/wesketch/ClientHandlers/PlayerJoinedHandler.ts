@@ -1,5 +1,5 @@
-import { WesketchEventTypes } from "../Types";
-import { IWesketchEventHandler, IWesketchEvent, IWesketchPlayer } from "../Interfaces";
+import { WesketchEventTypes } from "../types";
+import { IWesketchEventHandler, IWesketchEvent, IWesketchPlayer } from "../interfaces";
 
 import { WesketchServer } from "../wesketch-server";
 

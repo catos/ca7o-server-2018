@@ -1,5 +1,5 @@
-import { WesketchEventTypes, PhaseTypes } from "../Types";
-import { IWesketchEventHandler, IWesketchEvent } from "../Interfaces";
+import { WesketchEventTypes, PhaseTypes } from "../types";
+import { IWesketchEventHandler, IWesketchEvent } from "../interfaces";
 import { WesketchServer } from "../wesketch-server";
 
 export class PlayerReadyHandler implements IWesketchEventHandler {

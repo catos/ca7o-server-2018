@@ -1,5 +1,5 @@
-import { WesketchEventTypes } from "../Types";
-import { IWesketchEventHandler, IWesketchEvent, IWesketchDrawing } from "../Interfaces";
+import { WesketchEventTypes } from "../types";
+import { IWesketchEventHandler, IWesketchEvent, IWesketchDrawing } from "../interfaces";
 import { WesketchServer } from "../wesketch-server";
 
 export class SaveDrawingHandler implements IWesketchEventHandler {
