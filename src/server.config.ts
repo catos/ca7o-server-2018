@@ -5,7 +5,7 @@ export const serverConfig = {
     db: 'mongodb://ca7o:monzter1@84.52.213.99:27017/ca7o',
     rootPath: __dirname,
     // port: env === 'development' ? process.env.PORT || 3001 : process.env.PORT || 5001,
-    port: process.env.PORT || 3001,
+    port: process.env.PORT || 5001,
     secret: 'RbBQqA6uF#msRF8s7h*?@=95HUm&DgMDd6zLFn4XzWQ6dtwXSJwBX#?gL2JWf!',
     env: env
 };
