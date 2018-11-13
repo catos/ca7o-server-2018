@@ -155,9 +155,9 @@ export class WesketchServer {
     }
 
     onEvent = (event: IWesketchEvent) => {
-        if (event.type !== WesketchEventTypes.Draw) {
-            console.log(`### [ WesketchServerSocket.onEvent ]  event.userId: ${event.userId}, type: ${WesketchEventTypes[event.type]}`);
-        }
+        // if (event.type !== WesketchEventTypes.Draw) {
+        //     console.log(`### [ WesketchServerSocket.onEvent ]  event.userId: ${event.userId}, type: ${WesketchEventTypes[event.type]}`);
+        // }
 
         this.handlers.forEach((handler: IWesketchEventHandler) => {
             handler.handle(event, this);
