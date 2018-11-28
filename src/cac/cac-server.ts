@@ -12,7 +12,7 @@ interface ITickerState {
     players: IPlayer[]
 }
 
-export class TickerServer {
+export class CacServer {
     public state: ITickerState;
     private handlers: ITickerHandler[];
     private components: ITickerComponent[];
@@ -20,6 +20,8 @@ export class TickerServer {
     intervalId: any;
 
     constructor(io: SocketIO.Server) {
+        console.log('new CacServer');
+
         this.state = {
             updated: true,
             timer: 0,
@@ -46,18 +48,17 @@ export class TickerServer {
     }
 
     private initIo = (io: SocketIO.Server) => {
-        this._io = io.of('ticker');
+        this._io = io.of('/cac');
         this._io.on('connection', (client: SocketIO.Socket) => {
-            console.log('### TickerClient Connected')
+            console.log('### CacClient Connected')
 
             client.on('event', (event: any) => {
-                console.log('### TickerClient event: ', event);
-
+                console.log('### CacClient event: ', event);
                 this.handlers.forEach(handler => handler.onEvent(event, this.state));
             })
 
             client.on('disconnect', () => {
-                console.log('### TickerClient Disconnected')
+                console.log('### CacClient Disconnected')
             })
         });
     }
@@ -77,10 +78,10 @@ export class TickerServer {
         // if state change...send new state to client
         // console.log('update: ', JSON.stringify(prevState), JSON.stringify(this.state));
         // if (JSON.stringify(prevState) !== JSON.stringify(this.state)) {
-        if (this.state.updated) {
+        // if (this.state.updated) {
             this._io.emit('event', { type: 'UpdateGameState', value: this.state });
             this.state.updated = false;
-        }
+        // }
         // }
     }
 }
