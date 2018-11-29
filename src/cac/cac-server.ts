@@ -1,19 +1,20 @@
 interface IPlayer {
-    userId: string;
+    socketId: string;
     name: string;
     ticks: number;
+    clicks: number;
     tps: number;
 }
 
 interface ITickerState {
-    updated: boolean;
+    updated: number;
     timer: number;
-    clicks: number;
     players: IPlayer[]
 }
 
 export class CacServer {
     public state: ITickerState;
+    private prevState: ITickerState;
     private handlers: ITickerHandler[];
     private components: ITickerComponent[];
     private _io: SocketIO.Namespace;
@@ -23,11 +24,11 @@ export class CacServer {
         console.log('new CacServer');
 
         this.state = {
-            updated: true,
+            updated: Date.now(),
             timer: 0,
-            clicks: 0,
             players: []
         };
+        this.prevState = {...this.state};
 
         this.initHandlers();
         this.initComponents();
@@ -51,9 +52,21 @@ export class CacServer {
         this._io = io.of('/cac');
         this._io.on('connection', (client: SocketIO.Socket) => {
             console.log('### CacClient Connected')
+            if (this.state.players.find(p => p.socketId === client.id) === undefined) {
+                const newPlayer: IPlayer = {
+                    socketId: client.id,
+                    name: 'N/A',
+                    ticks: 0,
+                    clicks: 0,
+                    tps: 0
+                };
+                this.state.players.push(newPlayer);
+                this.state.updated = Date.now();
+                console.log('players: ', this.state.players);
+            }
 
             client.on('event', (event: any) => {
-                console.log('### CacClient event: ', event);
+                // console.log('### CacClient event: ', event);
                 this.handlers.forEach(handler => handler.onEvent(event, this.state));
             })
 
@@ -67,7 +80,7 @@ export class CacServer {
         console.log('start');
         this.intervalId = setInterval(() => {
             this.update();
-        }, 1000);
+        }, 100);
     }
 
     private update = () => {
@@ -78,11 +91,14 @@ export class CacServer {
         // if state change...send new state to client
         // console.log('update: ', JSON.stringify(prevState), JSON.stringify(this.state));
         // if (JSON.stringify(prevState) !== JSON.stringify(this.state)) {
-        // if (this.state.updated) {
+        // }
+
+        if (this.state.updated > this.prevState.updated) {
+            console.log('prevState !== this.state -> UpdateGameState');
             this._io.emit('event', { type: 'UpdateGameState', value: this.state });
-            this.state.updated = false;
-        // }
-        // }
+        }
+
+        this.prevState = { ...this.state };
     }
 }
 
@@ -94,7 +110,7 @@ interface ITickerComponent {
 
 class UpdateTimer implements ITickerComponent {
     update = (state: ITickerState) => {
-        state.timer++;
+        // state.timer += 1;
     }
 }
 
@@ -116,8 +132,12 @@ interface ITickerHandler {
 class ClickHandler implements ITickerHandler {
     onEvent = (event: any, state: ITickerState) => {
         if (event.type === 'click') {
-            state.clicks++;
-            state.updated = true;
+            const player = state.players.find(p => p.socketId === event.socketId);
+            if (player !== undefined) {
+                player.clicks++;
+
+                state.updated = Date.now();
+            }
             console.log('ClickHandler->event');
         }
     };
