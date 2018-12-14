@@ -50,6 +50,20 @@ export class CacServer {
 
     private initIo = (io: SocketIO.Server) => {
         this._io = io.of('/cac');
+        
+        this._io.use(function(socket, next){
+            // TODO: har navn og socketid her...
+            console.log("Query: ", socket.handshake.query, socket.id);
+            return next();
+
+            // // return the result of next() to accept the connection.
+            // if (socket.handshake.query.foo == "bar") {
+            //     return next();
+            // }
+            // // call next() with an Error if you need to reject the connection.
+            // next(new Error('Authentication error'));
+        });
+
         this._io.on('connection', (client: SocketIO.Socket) => {
             console.log('### CacClient Connected')
             if (this.state.players.find(p => p.socketId === client.id) === undefined) {
@@ -62,7 +76,7 @@ export class CacServer {
                 };
                 this.state.players.push(newPlayer);
                 this.state.updated = Date.now();
-                console.log('players: ', this.state.players);
+                // console.log('players: ', this.state.players);
             }
 
             client.on('event', (event: any) => {
@@ -71,7 +85,8 @@ export class CacServer {
             })
 
             client.on('disconnect', () => {
-                console.log('### CacClient Disconnected')
+                console.log('### CacClient Disconnected', client.id)
+                this.state.players = this.state.players.filter(p => p.socketId !== client.id);
             })
         });
     }
