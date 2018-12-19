@@ -56,7 +56,7 @@ export class RecipesEndpoint implements IEndpoint {
     }
 
     delete = (request: Request, response: Response, next: NextFunction) => {
-        Recipe.findByIdAndRemove(request.params.id).exec()
+        Recipe.findOneAndDelete({ guid: request.params.id }).exec()
             .then(result => response.json(result))
             .catch(error => this.errorHandler(error, response));
     }
