@@ -197,14 +197,12 @@ class ClickHandler implements ITickerHandler {
 
             gameState.updated = Date.now();
         }
-        console.log('ClickHandler->event');
     };
 }
 
 class StopHandler implements ITickerHandler {
     onEvent = (event: ICacEvent, state: ICacServerState) => {
         if (event.type === 'stop') {
-            console.log('StopHandler->event');
         }
     };
 }
