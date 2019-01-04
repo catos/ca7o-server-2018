@@ -1,139 +1,156 @@
-interface IPlayer {
-    socketId: string;
-    name: string;
-    ticks: number;
-    clicks: number;
-    tps: number;
-}
+import { ITickerState, defaultTickerState } from "./ITickerState";
+import { IPlayer } from "./IPlayer";
+import { ICacEvent } from "./ICacEvent";
 
-interface ITickerState {
-    updated: number;
-    timer: number;
-    players: IPlayer[]
+export interface ICacServerState {
+    gameState: ITickerState
+
+    intervalId: any;
+    _io: SocketIO.Namespace;
+
+    handlers: ITickerHandler[];
+    components: ITickerComponent[];
 }
 
 export class CacServer {
-    public state: ITickerState;
-    private prevState: ITickerState;
-    private handlers: ITickerHandler[];
-    private components: ITickerComponent[];
-    private _io: SocketIO.Namespace;
-    intervalId: any;
+    public state: ICacServerState;
 
     constructor(io: SocketIO.Server) {
-        console.log('new CacServer');
-
+        console.log('### new CacServer');
         this.state = {
-            updated: Date.now(),
-            timer: 0,
-            players: []
+            gameState: defaultTickerState,
+            intervalId: {},
+            _io: io.of('/cac'),
+            handlers: [],
+            components: []
         };
-        this.prevState = {...this.state};
 
         this.initHandlers();
         this.initComponents();
-        this.initIo(io);
+        this.initIo();
         this.start();
     }
 
     private initHandlers = () => {
-        this.handlers = [];
-        this.handlers.push(new ClickHandler());
-        this.handlers.push(new StopHandler());
+        console.log('### initHandlers');
+        this.state.handlers.push(new ClickHandler());
+        this.state.handlers.push(new StopHandler());
     }
 
     private initComponents = () => {
-        this.components = [];
-        this.components.push(new UpdateTimer());
-        this.components.push(new ResetTimer());
+        console.log('### initComponents');
+        this.state.components.push(new SendUpdatedGameState());
+        this.state.components.push(new UpdateTicks());
+        this.state.components.push(new GameOver());
     }
 
-    private initIo = (io: SocketIO.Server) => {
-        this._io = io.of('/cac');
-        
-        this._io.use(function(socket, next){
-            // TODO: har navn og socketid her...
-            console.log("Query: ", socket.handshake.query, socket.id);
-            return next();
+    private initIo = () => {
+        console.log('### initIo');
 
-            // // return the result of next() to accept the connection.
-            // if (socket.handshake.query.foo == "bar") {
-            //     return next();
-            // }
-            // // call next() with an Error if you need to reject the connection.
-            // next(new Error('Authentication error'));
+        // Fetch name from handshake query
+        let name = 'N/A';
+        this.state._io.use(function (socket, next) {
+            name = socket.handshake.query.name;
+            return next();
         });
 
-        this._io.on('connection', (client: SocketIO.Socket) => {
+        this.state._io.on('connection', (client: SocketIO.Socket) => {
             console.log('### CacClient Connected')
-            if (this.state.players.find(p => p.socketId === client.id) === undefined) {
-                const newPlayer: IPlayer = {
-                    socketId: client.id,
-                    name: 'N/A',
-                    ticks: 0,
-                    clicks: 0,
-                    tps: 0
-                };
-                this.state.players.push(newPlayer);
-                this.state.updated = Date.now();
-                // console.log('players: ', this.state.players);
-            }
 
+            // Connect
+            const handler = new NewPlayer();
+            const newPlayerEvent: ICacEvent = {
+                socketId: client.id,
+                name,
+                timestamp: Date.now(),
+                type: 'new-player',
+                value: {}
+            };
+            console.log(newPlayerEvent);
+            handler.onEvent(newPlayerEvent, this.state);
+
+            // Event
             client.on('event', (event: any) => {
-                // console.log('### CacClient event: ', event);
-                this.handlers.forEach(handler => handler.onEvent(event, this.state));
+                this.state.handlers.forEach(handler => handler.onEvent(event, this.state));
             })
 
+            // Disconnect
             client.on('disconnect', () => {
                 console.log('### CacClient Disconnected', client.id)
-                this.state.players = this.state.players.filter(p => p.socketId !== client.id);
+                this.state.gameState.players = this.state.gameState.players.filter(p => p.socketId !== client.id);
             })
         });
     }
 
     private start = () => {
-        console.log('start');
-        this.intervalId = setInterval(() => {
+        console.log('### Start');
+        this.state.intervalId = setInterval(() => {
             this.update();
         }, 100);
     }
 
     private update = () => {
-        // const prevState = this.state;
-
-        this.components.forEach(component => component.update(this.state));
-
-        // if state change...send new state to client
-        // console.log('update: ', JSON.stringify(prevState), JSON.stringify(this.state));
-        // if (JSON.stringify(prevState) !== JSON.stringify(this.state)) {
-        // }
-
-        if (this.state.updated > this.prevState.updated) {
-            console.log('prevState !== this.state -> UpdateGameState');
-            this._io.emit('event', { type: 'UpdateGameState', value: this.state });
-        }
-
-        this.prevState = { ...this.state };
+        this.state.components.forEach(component => component.update(this.state));
+        this.state.gameState.prevUpdated = this.state.gameState.updated;
     }
 }
 
 // ----------------------------------------------------------------------
 
 interface ITickerComponent {
-    update: (state: ITickerState) => void;
+    update: (state: ICacServerState) => void;
 }
 
-class UpdateTimer implements ITickerComponent {
-    update = (state: ITickerState) => {
-        // state.timer += 1;
+class SendUpdatedGameState implements ITickerComponent {
+    update = (state: ICacServerState) => {
+        const { gameState } = state;
+        let sendUpdate: boolean = false;
+
+        // Client input requires update
+        if (gameState.updated > gameState.prevUpdated) {
+            console.log('Client input requires update');
+            sendUpdate = true;
+        }
+
+        // Send update each 1 sec minimum
+        const now = Date.now();
+        const elapsed = now - gameState.updated;
+        if (elapsed > 1000 * 3) {
+            console.log('Send update each 1 sec minimum');
+            gameState.updated = now;
+            sendUpdate = true;
+        }
+
+        if (sendUpdate) {
+            const updateEvent: ICacEvent = {
+                socketId: 'na',
+                name: 'server',
+                timestamp: now,
+                type: 'UpdateGameState',
+                value: gameState
+            };
+            state._io.emit('event', updateEvent);
+        }
     }
 }
 
-class ResetTimer implements ITickerComponent {
-    update = (state: ITickerState) => {
-        if (state.timer > 10) {
-            state.timer = 0;
-            console.log('ResetTimer');
+class UpdateTicks implements ITickerComponent {
+    update = (state: ICacServerState) => {
+        const { gameState } = state;
+
+        gameState.ticks += 1;
+    }
+}
+
+class GameOver implements ITickerComponent {
+    update = (state: ICacServerState) => {
+        const { gameState } = state;
+
+        if (gameState.players.find(p => p.clicks >= 10)) {
+            gameState.gameOver = true;
+
+            clearInterval(state.intervalId);
+            console.log('### Game Over!');
         }
     }
 }
@@ -141,25 +158,51 @@ class ResetTimer implements ITickerComponent {
 // ----------------------------------------------------------------------
 
 interface ITickerHandler {
-    onEvent: (event: any, state: ITickerState) => void;
+    onEvent: (event: ICacEvent, state: ICacServerState) => void;
+}
+
+class NewPlayer implements ITickerHandler {
+    onEvent = (event: ICacEvent, state: ICacServerState) => {
+        const { gameState } = state;
+
+        if (event.type !== 'new-player') {
+            return;
+        }
+
+        if (gameState.players.find(p => p.socketId === event.socketId) === undefined) {
+            const newPlayer: IPlayer = {
+                socketId: event.socketId,
+                name: event.name,
+                ticks: 0,
+                clicks: 0,
+                tps: 0
+            };
+            gameState.players.push(newPlayer);
+            gameState.updated = Date.now();
+            console.log('players: ', gameState.players);
+        }
+    }
 }
 
 class ClickHandler implements ITickerHandler {
-    onEvent = (event: any, state: ITickerState) => {
-        if (event.type === 'click') {
-            const player = state.players.find(p => p.socketId === event.socketId);
-            if (player !== undefined) {
-                player.clicks++;
-
-                state.updated = Date.now();
-            }
-            console.log('ClickHandler->event');
+    onEvent = (event: ICacEvent, state: ICacServerState) => {
+        const { gameState } = state;
+        if (event.type !== 'click') {
+            return;
         }
+
+        const player = gameState.players.find(p => p.socketId === event.socketId);
+        if (player !== undefined) {
+            player.clicks++;
+
+            gameState.updated = Date.now();
+        }
+        console.log('ClickHandler->event');
     };
 }
 
 class StopHandler implements ITickerHandler {
-    onEvent = (event: any, state: ITickerState) => {
+    onEvent = (event: ICacEvent, state: ICacServerState) => {
         if (event.type === 'stop') {
             console.log('StopHandler->event');
         }
