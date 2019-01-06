@@ -130,7 +130,8 @@ export class Server {
         new WesketchServer(io);
 
         // Create Ticker server
-        new CacServer(io);
+        const cacServer = new CacServer();
+        cacServer.init(io);
 
         // listen on provided ports
         httpServer.listen(serverConfig.port, function () {
