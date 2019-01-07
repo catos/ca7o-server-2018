@@ -3,13 +3,8 @@
  * 
  */
 
-import { IPlayer } from "./IPlayer";
+import { IPlayer, newPlayer } from "./IPlayer";
 import { ICacEvent } from "./ICacEvent";
-
-export interface ISocket extends SocketIO.Socket {
-    name: string;
-    isInGame: boolean;
-}
 
 export interface ICacGameState {
     gameOver: boolean;
@@ -52,7 +47,7 @@ export class CacServer {
         this.components.push(new GameOverComponent());
     }
 
-    onConnection = (client: ISocket) => {
+    onConnection = (client: SocketIO.Socket) => {
         console.log('### CacClient Connected')
 
         // Event
@@ -136,7 +131,7 @@ class GameOverComponent implements ICacComponent {
     update = (server: CacServer) => {
         const { gameState } = server;
 
-        if (gameState.players.find(p => p.clicks >= 10) && !gameState.gameOver) {
+        if (gameState.players.find(p => p.coins >= 100) && !gameState.gameOver) {
             gameState.gameOver = true;
 
             // clearInterval(state.intervalId);
@@ -159,13 +154,9 @@ class JoinGameHandler implements IEventHandler {
         }
 
         if (gameState.players.find(p => p.socketId === event.socketId) === undefined) {
-            const newPlayer: IPlayer = {
-                socketId: event.socketId,
-                name: event.name,
-                ticks: 0,
-                clicks: 0,
-                tps: 0
-            };
+            let player = newPlayer;
+            player.socketId = event.socketId;
+            player.name = event.name;
             gameState.players.push(newPlayer);
             server.sync();
         }
@@ -181,7 +172,7 @@ class ClickHandler implements IEventHandler {
 
         const player = gameState.players.find(p => p.socketId === event.socketId);
         if (player !== undefined) {
-            player.clicks++;
+            player.coins++;
             server.sync();
         }
     };
