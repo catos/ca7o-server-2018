@@ -12,7 +12,7 @@ import { serverConfig } from './server.config'
 import { AuthService } from './auth/auth.service'
 
 import { WesketchServer } from './wesketch/wesketch-server';
-import { CacServer } from './cac/cac-server';
+import { CacServer } from './cac/CacServer';
 
 import { AuthEndpoint } from './auth/auth.endpoint';
 import { UserEndpoint } from './user/user.endpoint'
