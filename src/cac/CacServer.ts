@@ -1,6 +1,25 @@
 /**
  * https://github.com/Arcanorum/basic-networked-multiplayer-game/blob/master/Server.js
  * 
+ * 
+ * 
+ *  Game
+        ManyGameVariablesAndConstants
+        sync()
+        update()
+
+        SocketIOServer
+            onEvent() // Events fra clients med socket.io    
+
+        PlayerObject
+            update()
+        ShopObject
+            update()
+        CraftingObject
+            update()
+
+ * 
+ * 
  */
 
 import { CacPlayer } from "./CacModels";
@@ -15,6 +34,8 @@ export interface ICacGameState {
 export class CacServer {
     lastSync: number = Date.now();
     syncRate: number = 1000;
+
+    // GameState - will be synces to all clients each update / tick
     gameState: ICacGameState = {
         gameOver: false,
         ticks: 0,
@@ -23,59 +44,69 @@ export class CacServer {
 
     intervalId: any = {};
     io: SocketIO.Namespace = undefined;
-    handlers: IEventHandler[] = [];
-    commands: ICacCommand[] = [];
+
+    eventHandlers: IEventHandler[] = [];
+    nodes: INode[] = [];
 
     constructor() {
         console.log('### new CacServer');
     }
 
     init = (io: SocketIO.Server) => {
+
+        console.log('### Create Nodes');
+        this.nodes.push(new RootNode(this));
+
         console.log('### init io');
         this.io = io.of('/cac');
-        this.io.on('connection', this.onConnection);
+        this.io.on('connection', (client: SocketIO.Socket) => {
+            console.log('### CacClient Connected')
 
-        console.log('### Init EventHandlers');
-        this.handlers.push(new JoinGameHandler());
-        this.handlers.push(new ClickHandler());
-        this.handlers.push(new StopGameHandler());
-        this.handlers.push(new StartGameHandler());
+            // Event
+            client.on('event', this.onEvent);
 
-        console.log('### Init Commands');
-        this.commands.push(new SyncGameStateCommand());
-        this.commands.push(new UpdateTicksCommand());
-        this.commands.push(new GameOverCommand());
+            // Disconnect
+            client.on('disconnect', () => {
+                console.log('### CacClient Disconnected', client.id)
+                this.gameState.players = this.gameState.players.filter(p => p.socketId !== client.id);
+            })
+        });
     }
 
-    onConnection = (client: SocketIO.Socket) => {
-        console.log('### CacClient Connected')
-
-        // Event
-        client.on('event', (event: any) => {
-            this.handlers.forEach(handler => handler.onEvent(event, this));
-        })
-
-        // Disconnect
-        client.on('disconnect', () => {
-            console.log('### CacClient Disconnected', client.id)
-            this.gameState.players = this.gameState.players.filter(p => p.socketId !== client.id);
-        })
+    onEvent = (event: any) => {
+        this.eventHandlers
+            .filter(p => p.eventType === event.type)
+            .map(h => h.onEvent(event));
     }
 
-    start = () => {
-        console.log('### Start');
-        this.intervalId = setInterval(() => {
-            this.update();
-        }, 100);
-    }
-
-    stop = () => {
-        console.log('### Stop');
-        clearInterval(this.intervalId);
+    registerEventHandler(eventHandler: IEventHandler): any {
+        this.eventHandlers.push(eventHandler)
     }
 
     update = () => {
-        this.commands.forEach(command => command.execute(this));
+        // Sync GameState
+        let sendUpdate: boolean = false;
+
+        // No players ?
+        if (this.gameState.players.length <= 0) {
+            return;
+        }
+
+        // Send update each syncRate
+        // TODO: move lastSync and syncRate to this class ?
+        const now = Date.now();
+        const elapsed = now - this.lastSync;
+        if (elapsed > this.syncRate) {
+            console.log('Send update each syncRate');
+            this.lastSync = now;
+            sendUpdate = true;
+        }
+
+        if (sendUpdate) {
+            this.sync();
+        }
+
+        this.nodes.forEach(n => n.update());
     }
 
     sync = () => {
@@ -90,109 +121,130 @@ export class CacServer {
     }
 }
 
-// Commands ----------------------------------------------------------------------
-
-interface ICacCommand {
-    execute: (server: CacServer) => void;
+/**
+ * EventHandler... interface
+ */
+interface IEventHandler {
+    eventType: string;
+    onEvent: (event: any) => void;
 }
 
-class SyncGameStateCommand implements ICacCommand {
-    execute = (server: CacServer) => {
-        const { gameState } = server;
-        let sendUpdate: boolean = false;
+/**
+ * Node interface
+ */
+interface INode {
+    name: string;
+    server: CacServer;
+    children: INode[];
 
-        // No players ?
-        if (gameState.players.length <= 0) {
-            return;
-        }
+    update: () => void;
+}
 
-        // Send update each syncRate
-        const now = Date.now();
-        const elapsed = now - server.lastSync;
-        if (elapsed > server.syncRate) {
-            console.log('Send update each syncRate');
-            server.lastSync = now;
-            sendUpdate = true;
-        }
+/**
+ * Base Node
+ */
+class Node implements INode {
+    name: string;
+    server: CacServer;
+    children: INode[] = [];
 
-        if (sendUpdate) {
-            server.sync();
-        }
+    constructor(server: CacServer, name: string) {
+        console.log(`## Node '${name}' created`);
+        this.server = server;
     }
+
+    update = () => {
+        console.log('Node->update');
+        this.children.forEach(n => n.update())
+    };
 }
 
-class UpdateTicksCommand implements ICacCommand {
-    execute = (server: CacServer) => {
-        server.gameState.ticks += 1;
+/**
+ * TODO: split up RootNode ?
+ * 
+ * SyncGameStateCommand
+ * UpdateTicksCommand
+ * GameOverCommand
+ * 
+ */
+class RootNode extends Node {
+    constructor(server: CacServer) {
+        super(server, "game");
+        
+        this.children.push(new PlayerNode(server));
+
+        this.server.registerEventHandler({ eventType: 'start-game', onEvent: this.startGame });
+        this.server.registerEventHandler({ eventType: 'stop-game', onEvent: this.stopGame });
+        
+        // this.server.registerStateSpawner({ condition: this.server.gameState.players.find(p => p.coins >= 10) && !this.server.gameState.gameOver, stateType = "game-over" });
+        // this.server.registerStateHandler({ stateType: 'game-over', onState: this.gameOver });
     }
-}
 
-class GameOverCommand implements ICacCommand {
-    execute = (server: CacServer) => {
-        const { gameState } = server;
+    update = () => {
+        Node.prototype.update();
+        console.log('RootNode.update');
 
-        if (gameState.players.find(p => p.coins >= 100) && !gameState.gameOver) {
-            gameState.gameOver = true;
+        // Update ticks
+        this.server.gameState.ticks += 1;
 
-            // clearInterval(state.intervalId);
+        // Check if game over
+        if (this.server.gameState.players.find(p => p.coins >= 10) && !this.server.gameState.gameOver) {
+            this.stopGame();
             console.log('### Game Over!');
         }
     }
+
+    private startGame = (event: any) => {
+        console.log('### Start game');
+        this.server.intervalId = setInterval(() => {
+            this.server.update();
+        }, 100);
+    }
+
+    private stopGame = (event?: any) => {
+        console.log('### Stop');
+        clearInterval(this.server.intervalId);
+    }
+
+    // private gameOver = (event: any) => {
+    //     this.server.gameState.gameOver = true;
+    //     this.stopGame();
+    // }
 }
 
-// EventHandlers ----------------------------------------------------------------------
+/**
+ * PlayerNode
+ */
+class PlayerNode extends Node {
 
-interface IEventHandler {
-    onEvent: (event: ICacEvent, server: CacServer) => void;
-}
+    constructor(server: CacServer) {
+        super(server, "player");
 
-class JoinGameHandler implements IEventHandler {
-    onEvent = (event: ICacEvent, server: CacServer) => {
-        if (event.type !== 'join-game') {
-            return;
-        }
+        this.server.registerEventHandler({ eventType: 'join-game', onEvent: this.joinGame });
+        this.server.registerEventHandler({ eventType: 'click', onEvent: this.click });
+    }
 
-        const existingPlayer = server.gameState.players.find(p => p.socketId === event.socketId);
+    update = () => {
+        console.log('PlayerNode.update');
+    }
+
+    private joinGame = (event: any) => {
+        const existingPlayer = this.server.gameState.players.find(p => p.socketId === event.socketId);
         if (existingPlayer === undefined) {
             let player = new CacPlayer(event.socketId, event.name);
             // player.socketId = event.socketId;
             // player.name = event.name;
-            server.gameState.players.push(player);
-            server.sync();
+            this.server.gameState.players.push(player);
+            this.server.sync();
         }
     }
-}
 
-class ClickHandler implements IEventHandler {
-    onEvent = (event: ICacEvent, server: CacServer) => {
-        const { gameState } = server;
-        if (event.type !== 'click') {
-            return;
-        }
-
-        const player = gameState.players.find(p => p.socketId === event.socketId);
+    private click = (event: any) => {
+        const player = this.server.gameState.players.find(p => p.socketId === event.socketId);
         if (player !== undefined) {
             player.coins++;
-            server.sync();
+            this.server.sync();
         }
-    };
-}
-
-class StartGameHandler implements IEventHandler {
-    onEvent = (event: ICacEvent, server: CacServer) => {
-        if (event.type !== 'start-game') {
-            return;
-        }
-        server.start();
-    };
-}
-
-class StopGameHandler implements IEventHandler {
-    onEvent = (event: ICacEvent, server: CacServer) => {
-        if (event.type !== 'stop-game') {
-            return;
-        }
-        server.stop();
-    };
+    }
 }
 
