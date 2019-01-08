@@ -3,13 +3,13 @@
  * 
  */
 
-import { IPlayer, newPlayer } from "./IPlayer";
+import { CacPlayer } from "./CacModels";
 import { ICacEvent } from "./ICacEvent";
 
 export interface ICacGameState {
     gameOver: boolean;
     ticks: number;
-    players: IPlayer[];
+    players: CacPlayer[];
 }
 
 export class CacServer {
@@ -24,7 +24,7 @@ export class CacServer {
     intervalId: any = {};
     io: SocketIO.Namespace = undefined;
     handlers: IEventHandler[] = [];
-    components: ICacComponent[] = [];
+    commands: ICacCommand[] = [];
 
     constructor() {
         console.log('### new CacServer');
@@ -35,16 +35,16 @@ export class CacServer {
         this.io = io.of('/cac');
         this.io.on('connection', this.onConnection);
 
-        console.log('### initEventHandlers');
+        console.log('### Init EventHandlers');
         this.handlers.push(new JoinGameHandler());
         this.handlers.push(new ClickHandler());
-        this.handlers.push(new StopHandler());
-        this.handlers.push(new StartHandler());
+        this.handlers.push(new StopGameHandler());
+        this.handlers.push(new StartGameHandler());
 
-        console.log('### initComponents');
-        this.components.push(new SyncComponent());
-        this.components.push(new UpdateTicksComponent());
-        this.components.push(new GameOverComponent());
+        console.log('### Init Commands');
+        this.commands.push(new SyncGameStateCommand());
+        this.commands.push(new UpdateTicksCommand());
+        this.commands.push(new GameOverCommand());
     }
 
     onConnection = (client: SocketIO.Socket) => {
@@ -75,7 +75,7 @@ export class CacServer {
     }
 
     update = () => {
-        this.components.forEach(component => component.update(this));
+        this.commands.forEach(command => command.execute(this));
     }
 
     sync = () => {
@@ -90,14 +90,14 @@ export class CacServer {
     }
 }
 
-// ----------------------------------------------------------------------
+// Commands ----------------------------------------------------------------------
 
-interface ICacComponent {
-    update: (server: CacServer) => void;
+interface ICacCommand {
+    execute: (server: CacServer) => void;
 }
 
-class SyncComponent implements ICacComponent {
-    update = (server: CacServer) => {
+class SyncGameStateCommand implements ICacCommand {
+    execute = (server: CacServer) => {
         const { gameState } = server;
         let sendUpdate: boolean = false;
 
@@ -121,14 +121,14 @@ class SyncComponent implements ICacComponent {
     }
 }
 
-class UpdateTicksComponent implements ICacComponent {
-    update = (server: CacServer) => {
+class UpdateTicksCommand implements ICacCommand {
+    execute = (server: CacServer) => {
         server.gameState.ticks += 1;
     }
 }
 
-class GameOverComponent implements ICacComponent {
-    update = (server: CacServer) => {
+class GameOverCommand implements ICacCommand {
+    execute = (server: CacServer) => {
         const { gameState } = server;
 
         if (gameState.players.find(p => p.coins >= 100) && !gameState.gameOver) {
@@ -140,7 +140,7 @@ class GameOverComponent implements ICacComponent {
     }
 }
 
-// ----------------------------------------------------------------------
+// EventHandlers ----------------------------------------------------------------------
 
 interface IEventHandler {
     onEvent: (event: ICacEvent, server: CacServer) => void;
@@ -148,16 +148,16 @@ interface IEventHandler {
 
 class JoinGameHandler implements IEventHandler {
     onEvent = (event: ICacEvent, server: CacServer) => {
-        const { gameState } = server;
         if (event.type !== 'join-game') {
             return;
         }
 
-        if (gameState.players.find(p => p.socketId === event.socketId) === undefined) {
-            let player = newPlayer;
-            player.socketId = event.socketId;
-            player.name = event.name;
-            gameState.players.push(newPlayer);
+        const existingPlayer = server.gameState.players.find(p => p.socketId === event.socketId);
+        if (existingPlayer === undefined) {
+            let player = new CacPlayer(event.socketId, event.name);
+            // player.socketId = event.socketId;
+            // player.name = event.name;
+            server.gameState.players.push(player);
             server.sync();
         }
     }
@@ -178,7 +178,7 @@ class ClickHandler implements IEventHandler {
     };
 }
 
-class StartHandler implements IEventHandler {
+class StartGameHandler implements IEventHandler {
     onEvent = (event: ICacEvent, server: CacServer) => {
         if (event.type !== 'start-game') {
             return;
@@ -187,7 +187,7 @@ class StartHandler implements IEventHandler {
     };
 }
 
-class StopHandler implements IEventHandler {
+class StopGameHandler implements IEventHandler {
     onEvent = (event: ICacEvent, server: CacServer) => {
         if (event.type !== 'stop-game') {
             return;
