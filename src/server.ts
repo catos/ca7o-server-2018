@@ -12,7 +12,7 @@ import { serverConfig } from './server.config'
 import { AuthService } from './auth/auth.service'
 
 import { WesketchServer } from './wesketch/wesketch-server';
-import { CacServer } from './cac/CacServer';
+import { CacGame } from './Cac/CacGame';
 
 import { AuthEndpoint } from './auth/auth.endpoint';
 import { UserEndpoint } from './user/user.endpoint'
@@ -130,8 +130,8 @@ export class Server {
         new WesketchServer(io);
 
         // Create Ticker server
-        const cacServer = new CacServer();
-        cacServer.init(io);
+        const cacGame = new CacGame();
+        // cacServer.init(io);
 
         // listen on provided ports
         httpServer.listen(serverConfig.port, function () {
