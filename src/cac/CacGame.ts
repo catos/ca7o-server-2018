@@ -9,6 +9,7 @@ export class CacGame {
     intervalId: any = {};
     cs: CacSocket;
     state: IGameState = {
+        phase: 'lobby',
         gameOver: false,
         ticks: 0,
         players: []
@@ -41,6 +42,7 @@ export class CacGame {
 
     private onConnect = (client: SocketIO.Socket) => {
         console.log('### Client Connected')
+        this.sync();
     }
 
     private onEvent = (event: IEvent) => {
@@ -52,10 +54,9 @@ export class CacGame {
         });
     }
 
-    private onDisconnect = (event: IEvent) => {
-        // TODO: event.socketId er undefined
-        console.log(`### Client Disconnected, socketId: ${event.socketId}`, event);
-        this.state.players = this.state.players.filter(p => p.socketId !== event.socketId);
+    private onDisconnect = (socket: SocketIO.Socket) => {
+        console.log(`### Client Disconnected, socketId: ${socket.id}`);
+        this.state.players = this.state.players.filter(p => p.socketId !== socket.id);
         this.sync();
     }
 }
@@ -73,14 +74,11 @@ class Node implements INode {
         this.game = game;
     }
     
-    update = () => {
-        // console.log('Node->update');
-        // this.children.forEach(n => n.update())
-    };
+    update = () => { }
 }
 
 /**
- * Player Node - handle client input related to player
+ * Player Node - handle client input related to player 
  */
 class PlayerNode extends Node {
     constructor(game: CacGame) {
@@ -94,6 +92,7 @@ class PlayerNode extends Node {
         if (existingPlayer === undefined) {
             let player = new Player(event.socketId, event.name);
             this.game.state.players.push(player);
+            
             this.game.sync();
         }
     }
@@ -154,6 +153,7 @@ class StartStopGameNode extends Node {
 
     private startGame = (event: any) => {
         console.log('### Start game');
+        this.game.state.phase = 'running';
         this.game.intervalId = setInterval(() => {
             this.game.update();
         }, 100);
@@ -161,6 +161,8 @@ class StartStopGameNode extends Node {
 
     private stopGame = (event?: any) => {
         console.log('### Stop game');
+        this.game.state.phase = 'lobby';
+        this.game.sync();
         clearInterval(this.game.intervalId);
     }
 }

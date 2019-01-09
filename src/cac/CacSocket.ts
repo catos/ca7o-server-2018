@@ -9,13 +9,18 @@ export class CacSocket {
     constructor(io: SocketIO.Server,
         onConnect: (client: SocketIO.Socket) => void,
         onEvent: (event: IEvent) => void,
-        onDisconnect: (event: IEvent) => void) {
+        onDisconnect: (socket: SocketIO.Socket) => void) {
 
         this.io = io.of('/cac');
         this.io.on('connection', (client: SocketIO.Socket) => {
             onConnect(client);
             client.on('event', onEvent);
-            client.on('disconnect', onDisconnect);
+            client.on('disconnect', () => onDisconnect(client));
+            client.on('connect_timeout', (timeout) => console.log(`Client timeout, socketId: ${client.id}, timeout: ${timeout}`))
+            client.on('connect_error', (error) => console.log(`Client error, socketId: ${client.id}, error: ${error}`));
+
+            client.on('ping', () => console.log(`Ping`));
+            client.on('pong', (latency) => console.log(`Pong, latency: ${latency}`));
         });
     }
 

@@ -96,6 +96,7 @@ export interface IEventHandler {
  * 
  */
 export interface IGameState {
+    phase: string;
     gameOver: boolean;
     ticks: number;
     players: Player[];
