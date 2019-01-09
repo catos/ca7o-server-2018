@@ -130,7 +130,7 @@ export class Server {
         new WesketchServer(io);
 
         // Create Ticker server
-        const cacGame = new CacGame();
+        const cacGame = new CacGame(io);
         // cacServer.init(io);
 
         // listen on provided ports
