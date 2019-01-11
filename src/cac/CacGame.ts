@@ -9,9 +9,10 @@ export class CacGame {
     intervalId: any = {};
     cs: CacSocket;
     state: IGameState = {
+        ticks: 0,
+        timer: 0,
         phase: 'lobby',
         gameOver: false,
-        ticks: 0,
         players: []
     };
 
@@ -20,6 +21,7 @@ export class CacGame {
         this.cs = new CacSocket(io, this.onConnect, this.onEvent, this.onDisconnect);
 
         console.log('### Create Nodes');
+        this.nodes.push(new TimerNode(this));
         this.nodes.push(new GameStateSyncNode(this));
         this.nodes.push(new StartStopGameNode(this));
         this.nodes.push(new PlayerNode(this));
@@ -137,6 +139,25 @@ class GameStateSyncNode extends Node {
 
         if (sendUpdate) {
             this.game.sync();
+        }
+    }
+}
+
+class TimerNode extends Node {
+    private timerAcc: number = 0;
+    private timerIntervall: number = 10;
+
+    constructor(game: CacGame) {
+        super(game, 'Tick');        
+    }
+
+    update = () => {
+        this.game.state.timer++;
+
+        this.timerAcc++;
+        if (this.timerAcc > this.timerIntervall) {
+            this.game.state.ticks++;
+            this.timerAcc = 0;
         }
     }
 }
