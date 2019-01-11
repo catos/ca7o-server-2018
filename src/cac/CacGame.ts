@@ -6,6 +6,7 @@ import { CacSocket } from "./CacSocket";
  */
 export class CacGame {
     nodes: INode[] = [];
+    interval: number = 100;
     intervalId: any = {};
     cs: CacSocket;
     state: IGameState = {
@@ -70,12 +71,12 @@ class Node implements INode {
     name: string;
     game: CacGame;
     eventHandlers: IEventHandler[] = [];
-    
+
     constructor(game: CacGame, name: string) {
         console.log(`## Node '${name}' created`);
         this.game = game;
     }
-    
+
     update = () => { }
 }
 
@@ -86,7 +87,25 @@ class PlayerNode extends Node {
     constructor(game: CacGame) {
         super(game, "Player");
         this.eventHandlers.push({ eventType: 'join-game', handle: this.joinGame });
-        this.eventHandlers.push({ eventType: 'click', handle: this.click });
+        this.eventHandlers.push({ eventType: 'work', handle: this.work });
+    }
+
+    update = () => {
+
+        this.game.state.players.forEach(p => {
+            // Update craft timers
+            if (p.city.isWorking && p.city.workTimer > 0) {
+                p.city.workTimer -= this.game.interval;
+            }
+
+            if (p.city.isWorking && p.city.workTimer <= 0) {
+                p.city.isWorking = false;
+                p.city.workTimer = 5000;
+
+                p.coins += Math.floor(p.citizens.workers / 2);
+                console.log(`${p.name} finished working!`);
+            }
+        });
     }
 
     private joinGame = (event: IEvent) => {
@@ -94,15 +113,16 @@ class PlayerNode extends Node {
         if (existingPlayer === undefined) {
             let player = new Player(event.socketId, event.name);
             this.game.state.players.push(player);
-            
+
             this.game.sync();
         }
     }
 
-    private click = (event: IEvent) => {
+    private work = (event: IEvent) => {
         const player = this.game.state.players.find(p => p.socketId === event.socketId);
         if (player !== undefined) {
-            player.coins++;
+            player.city.isWorking = true;
+
             this.game.sync();
         }
     }
@@ -148,7 +168,7 @@ class TimerNode extends Node {
     private timerIntervall: number = 10;
 
     constructor(game: CacGame) {
-        super(game, 'Tick');        
+        super(game, 'Tick');
     }
 
     update = () => {
@@ -177,7 +197,7 @@ class StartStopGameNode extends Node {
         this.game.state.phase = 'running';
         this.game.intervalId = setInterval(() => {
             this.game.update();
-        }, 100);
+        }, this.game.interval);
     }
 
     private stopGame = (event?: any) => {
