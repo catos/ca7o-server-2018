@@ -26,6 +26,7 @@ export class CacGame {
         this.nodes.push(new GameStateSyncNode(this));
         this.nodes.push(new StartStopGameNode(this));
         this.nodes.push(new PlayerNode(this));
+        this.nodes.push(new CityNode(this));
     }
 
     update = () => {
@@ -87,25 +88,6 @@ class PlayerNode extends Node {
     constructor(game: CacGame) {
         super(game, "Player");
         this.eventHandlers.push({ eventType: 'join-game', handle: this.joinGame });
-        this.eventHandlers.push({ eventType: 'work', handle: this.work });
-    }
-
-    update = () => {
-
-        this.game.state.players.forEach(p => {
-            // Update craft timers
-            if (p.city.isWorking && p.city.workTimer > 0) {
-                p.city.workTimer -= this.game.interval;
-            }
-
-            if (p.city.isWorking && p.city.workTimer <= 0) {
-                p.city.isWorking = false;
-                p.city.workTimer = 5000;
-
-                p.coins += Math.floor(p.citizens.workers / 2);
-                console.log(`${p.name} finished working!`);
-            }
-        });
     }
 
     private joinGame = (event: IEvent) => {
@@ -117,11 +99,67 @@ class PlayerNode extends Node {
             this.game.sync();
         }
     }
+}
+
+/**
+ * CityNode
+ */
+class CityNode extends Node {
+    constructor(game: CacGame) {
+        super(game, 'City');
+        this.eventHandlers.push({ eventType: 'city-work', handle: this.work });
+        this.eventHandlers.push({ eventType: 'city-upgrade', handle: this.upgrade });
+    }
+
+    update = () => {
+        this.game.state.players.forEach(p => {
+
+            // Work
+            if (p.city.work.inProgress && p.city.work.time > 0) {
+                p.city.work.time -= this.game.interval;
+            }
+
+            if (p.city.work.inProgress && p.city.work.time <= 0) {
+                p.city.work.inProgress = false;
+                p.city.work.time = 3000;
+
+                p.coins += Math.floor(p.citizens.workers / 2 * p.city.level.value);
+                console.log(`${p.name} finished working!`);
+            }
+
+            // Level
+            if (p.city.level.inProgress && p.city.level.time > 0) {
+                p.city.level.time -= this.game.interval;
+            }
+
+            if (p.city.level.inProgress && p.city.level.time <= 0) {
+                p.city.level.inProgress = false;
+                p.city.level.time = 10000;
+
+                p.city.level.value++;
+                  console.log(`City upgraded!`);
+            }
+        });
+    }
 
     private work = (event: IEvent) => {
         const player = this.game.state.players.find(p => p.socketId === event.socketId);
-        if (player !== undefined) {
-            player.city.isWorking = true;
+        if (player !== undefined && player.city.work.inProgress === false) {
+            player.city.work.inProgress = true;
+
+            this.game.sync();
+        }
+    }
+
+    private upgrade = (event: IEvent) => {
+        const player = this.game.state.players.find(p => p.socketId === event.socketId);
+        if (player !== undefined 
+            && player.city.level.inProgress === false 
+            && player.coins >= player.city.level.value * player.city.level.cost) {
+            
+            const cost = player.city.level.value * player.city.level.cost;
+            player.coins -= cost;
+            player.city.level.inProgress = true;
 
             this.game.sync();
         }
@@ -152,7 +190,6 @@ class GameStateSyncNode extends Node {
         const now = Date.now();
         const elapsed = now - this.lastSync;
         if (elapsed > this.syncRate) {
-            console.log('Send update each syncRate');
             this.lastSync = now;
             sendUpdate = true;
         }

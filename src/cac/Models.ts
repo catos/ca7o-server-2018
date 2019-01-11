@@ -1,14 +1,29 @@
 import { CacGame } from "./CacGame";
 
+export interface IProperty {
+    value: number;
+    cost: number;
+    time: number;
+    inProgress: boolean;
+}
+
 export class City {
-    level: number;
-    workTimer: number;
-    isWorking: boolean;
+    level: IProperty;
+    work: IProperty;
 
     constructor() {
-        this.level = 1;
-        this.workTimer = 5000;
-        this.isWorking = false;
+        this.level = {
+            value: 1,
+            cost: 100,
+            time: 10000,
+            inProgress: false
+        };
+        this.work = {
+            value: 1,
+            cost: 0,
+            time: 3000,
+            inProgress: false
+        };
     }
 }
 
@@ -52,7 +67,7 @@ export class Player {
         this.socketId = socketId;
         this.name = name;
 
-        this.coins = 0;
+        this.coins = 100;
         this.cps = 1;
         this.isDead = false;
         this.isComputer = false;
