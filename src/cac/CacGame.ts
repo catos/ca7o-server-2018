@@ -177,7 +177,7 @@ class CityNode extends Node {
         this.game.state.players.forEach(p => {
             // cps
             p.coins += p.cpt;
-        }
+        });
     }
 
     private work = (event: IEvent) => {
@@ -271,7 +271,7 @@ class ArmyNode extends Node {
                 this.game.sendMessage(`${p.name} recruited a soldier`);
             }
 
-        }
+        });
     }
 
     private recruit = (event: IEvent) => {
