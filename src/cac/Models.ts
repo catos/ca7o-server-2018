@@ -1,4 +1,5 @@
-import { CacGame } from "./CacGame";
+import { CacServer } from "./cac-server";
+import { ISocketEventHandler } from "./socket/i-socket-event-handler";
 
 export interface IProperty {
     value: number;
@@ -121,29 +122,10 @@ export interface IGameState {
 /**
  * 
  */
-export interface IEvent {
-    socketId: string;
-    name: string;
-    timestamp: number;
-    type: string;
-    value: any;
-}
-
-/**
- * 
- */
 export interface INode {
     name: string;
-    game: CacGame;
-    eventHandlers: IEventHandler[];
+    game: CacServer;
+    eventHandlers: ISocketEventHandler[];
     update: () => void;
     tick: () => void;
-}
-
-/**
- * 
- */
-export interface IEventHandler {
-    eventType: string;
-    handle: (event: IEvent) => void;
 }

@@ -1,17 +1,18 @@
-import { IEvent } from "./Models";
+import { ISocketEvent } from "./i-socket-event";
 
 /**
  * CacSocket - Responsible for socket communication & offers callbacks for events and connections
  */
-export class CacSocket {
+export class SocketServerService {
     io: SocketIO.Namespace;
 
     constructor(io: SocketIO.Server,
+        channel: string,
         onConnect: (client: SocketIO.Socket) => void,
-        onEvent: (event: IEvent) => void,
-        onDisconnect: (socket: SocketIO.Socket) => void) {
+        onDisconnect: (client: SocketIO.Socket) => void,
+        onEvent: (event: ISocketEvent) => void) {
 
-        this.io = io.of('/cac');
+        this.io = io.of(`/${channel}`);
         this.io.on('connection', (client: SocketIO.Socket) => {
             onConnect(client);
             client.on('event', onEvent);
@@ -24,7 +25,17 @@ export class CacSocket {
         });
     }
 
-    emit = (event: IEvent) => {
+    emitEvent = (event: ISocketEvent) => {
         this.io.emit('event', event);
     }
+
+    emit = (value: any, type: string = 'message', socketId: string = 'n/a') => {
+        const event: ISocketEvent = {
+            socketId,
+            timestamp: Date.now(),
+            type,
+            value
+        };
+        this.emitEvent(event);
+    }    
 }

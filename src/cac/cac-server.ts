@@ -1,14 +1,16 @@
-import { Player, IGameState, IEvent, INode, IEventHandler } from "./Models";
-import { CacSocket } from "./CacSocket";
+import { Player, IGameState, INode } from "./Models";
+import { SocketServerService } from "./socket/socket-server-service";
+import { ISocketEvent } from "./socket/i-socket-event";
+import { ISocketEventHandler } from "./socket/i-socket-event-handler";
 
 /**
  * Main game class
  */
-export class CacGame {
+export class CacServer {
     nodes: INode[] = [];
     interval: number = 100;
     intervalId: any = {};
-    cs: CacSocket;
+    socketService: SocketServerService;
     state: IGameState = {
         ticks: 0,
         timer: 0,
@@ -19,9 +21,10 @@ export class CacGame {
 
     constructor(io: SocketIO.Server) {
         console.log('### Create CacSocket');
-        this.cs = new CacSocket(io, this.onConnect, this.onEvent, this.onDisconnect);
+        this.socketService = new SocketServerService(io, 'cac', this.onConnect, this.onDisconnect, this.onEvent);
 
         console.log('### Create Nodes');
+        this.nodes.push(new DevNode(this));
         this.nodes.push(new TimerNode(this));
         this.nodes.push(new GameStateSyncNode(this));
         this.nodes.push(new StartStopGameNode(this));
@@ -39,25 +42,11 @@ export class CacGame {
     }
 
     sync = () => {
-        const syncEvent: IEvent = {
-            socketId: 'na',
-            name: 'server',
-            timestamp: Date.now(),
-            type: 'UpdateGameState',
-            value: this.state
-        };
-        this.cs.emit(syncEvent);
+        this.socketService.emit(this.state, 'update-game-state');
     }
 
     sendMessage = (message: string) => {
-        const syncEvent: IEvent = {
-            socketId: 'na',
-            name: 'server',
-            timestamp: Date.now(),
-            type: 'Message',
-            value: message
-        };
-        this.cs.emit(syncEvent);
+        this.socketService.emit(message, 'message');
     }
 
     private onConnect = (client: SocketIO.Socket) => {
@@ -67,8 +56,8 @@ export class CacGame {
         this.sync();
     }
 
-    private onEvent = (event: IEvent) => {
-        console.log('### Client Event');
+    private onEvent = (event: ISocketEvent) => {
+        console.log(`### Client Event, type: ${event.type}`);
         this.nodes.forEach(n => {
             n.eventHandlers
                 .filter(p => p.eventType == event.type)
@@ -88,10 +77,10 @@ export class CacGame {
  */
 class Node implements INode {
     name: string;
-    game: CacGame;
-    eventHandlers: IEventHandler[] = [];
+    game: CacServer;
+    eventHandlers: ISocketEventHandler[] = [];
 
-    constructor(game: CacGame, name: string) {
+    constructor(game: CacServer, name: string) {
         console.log(`## Node '${name}' created`);
         this.game = game;
     }
@@ -104,15 +93,15 @@ class Node implements INode {
  * Player Node - handle client input related to player 
  */
 class PlayerNode extends Node {
-    constructor(game: CacGame) {
+    constructor(game: CacServer) {
         super(game, "Player");
         this.eventHandlers.push({ eventType: 'join-game', handle: this.joinGame });
     }
 
-    private joinGame = (event: IEvent) => {
+    private joinGame = (event: ISocketEvent) => {
         const player = this.game.state.players.find(p => p.socketId === event.socketId);
         if (player !== undefined) {
-            player.name = event.name;
+            player.name = event.value;
             this.game.sendMessage(`${player.name} joined the game`);
             this.game.sync();
         }
@@ -123,7 +112,7 @@ class PlayerNode extends Node {
  * CityNode
  */
 class CityNode extends Node {
-    constructor(game: CacGame) {
+    constructor(game: CacServer) {
         super(game, 'City');
         this.eventHandlers.push({ eventType: 'city-work', handle: this.work });
         this.eventHandlers.push({ eventType: 'city-upgrade', handle: this.upgrade });
@@ -157,7 +146,8 @@ class CityNode extends Node {
                 p.city.level.timeRemaining = p.city.level.timeToUpgrade;
 
                 // Increment city level
-                p.city.level.value++;
+                p.city.level.value++;                
+                p.city.level.cost += p.city.level.cost * p.city.level.value;
 
                 // Update bonuses
                 p.city.bonuses.work = (p.city.level.value - 1) * 10;
@@ -180,8 +170,9 @@ class CityNode extends Node {
         });
     }
 
-    private work = (event: IEvent) => {
+    private work = (event: ISocketEvent) => {
         const player = this.game.state.players.find(p => p.socketId === event.socketId);
+
         // Player not found
         if (player === undefined) {
             this.game.sendMessage(`No player found with socketId: ${event.socketId}`);
@@ -198,7 +189,7 @@ class CityNode extends Node {
         this.game.sync();
     }
 
-    private upgrade = (event: IEvent) => {
+    private upgrade = (event: ISocketEvent) => {
         const player = this.game.state.players.find(p => p.socketId === event.socketId);
 
         // Player not found
@@ -213,13 +204,13 @@ class CityNode extends Node {
             return;
         }
 
-        const cost = player.city.level.value * player.city.level.cost;
-        if (player.coins < cost) {
-            this.game.sendMessage(`${player.name} cannot afford to upgrade his army`);
+        // Check if player can afford to upgrade
+        if (player.coins < player.city.level.cost) {
+            this.game.sendMessage(`${player.name} cannot afford to upgrade his city`);
             return;
         }
 
-        player.coins -= cost;
+        player.coins -= player.city.level.cost;
         player.city.level.inProgress = true;
         this.game.sendMessage(`${player.name} started upgrading his city`);
         this.game.sync();
@@ -227,7 +218,7 @@ class CityNode extends Node {
 }
 
 class ArmyNode extends Node {
-    constructor(game: CacGame) {
+    constructor(game: CacServer) {
         super(game, 'Army');
         this.eventHandlers.push({ eventType: 'army-recruit', handle: this.recruit });
         this.eventHandlers.push({ eventType: 'army-upgrade', handle: this.upgrade });
@@ -274,7 +265,7 @@ class ArmyNode extends Node {
         });
     }
 
-    private recruit = (event: IEvent) => {
+    private recruit = (event: ISocketEvent) => {
         const player = this.game.state.players.find(p => p.socketId === event.socketId);
 
         // Player not found
@@ -302,7 +293,7 @@ class ArmyNode extends Node {
         this.game.sync();
     }
 
-    private upgrade = (event: IEvent) => {
+    private upgrade = (event: ISocketEvent) => {
         const player = this.game.state.players.find(p => p.socketId === event.socketId);
 
         // Player not found
@@ -338,7 +329,7 @@ class GameStateSyncNode extends Node {
     lastSync: number = Date.now();
     syncRate: number = 1000;
 
-    constructor(game: CacGame) {
+    constructor(game: CacServer) {
         super(game, "GameStateSync");
     }
 
@@ -356,7 +347,7 @@ class TimerNode extends Node {
     private timerAcc: number = 0;
     private timerIntervall: number = 10;
 
-    constructor(game: CacGame) {
+    constructor(game: CacServer) {
         super(game, 'Timer');
     }
 
@@ -376,7 +367,7 @@ class TimerNode extends Node {
  * StartStopGameNode - listens to start and stop events
  */
 class StartStopGameNode extends Node {
-    constructor(game: CacGame) {
+    constructor(game: CacServer) {
         super(game, 'StartStopGame');
         this.eventHandlers.push({ eventType: 'start-game', handle: this.startGame });
         this.eventHandlers.push({ eventType: 'stop-game', handle: this.stopGame });
@@ -384,6 +375,12 @@ class StartStopGameNode extends Node {
 
     private startGame = (event: any) => {
         console.log('### Start game');
+
+        if (this.game.state.players.length <= 0) {
+            this.game.sendMessage(`Unable to start game, no players found`);
+            return;
+        }
+
         this.game.state.phase = 'running';
         this.game.intervalId = setInterval(() => {
             this.game.update();
@@ -396,4 +393,24 @@ class StartStopGameNode extends Node {
         this.game.sync();
         clearInterval(this.game.intervalId);
     }
+}
+
+/**
+ * Dev tools
+ */
+class DevNode extends Node {
+    constructor(game: CacServer) {
+        super(game, "Dev");
+        this.eventHandlers.push({ eventType: 'dev-get-coins', handle: this.coin });
+    }
+
+    private coin = (event: ISocketEvent) => {
+        const player = this.game.state.players.find(p => p.socketId === event.socketId);
+        if (player !== undefined) {
+            player.coins += parseInt(event.value);
+            this.game.sendMessage(`${player.name} received ${event.value} coins`);
+            this.game.sync();
+        }
+    }
+ 
 }
