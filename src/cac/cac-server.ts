@@ -64,10 +64,19 @@ export class CacServer {
 
     private onEvent = (event: ISocketEvent) => {
         console.log(`### Client Event, type: ${event.type}`);
+
+        // All events must have a player
+        const player = this.state.players.find(p => p.socketId === event.socketId);
+        if (player === undefined) {
+            this.sendMessage(`No player found with socketId: ${event.socketId}`);
+            return;
+        }
+
+        // Handle event
         this.nodes.forEach(n => {
             n.eventHandlers
                 .filter(p => p.eventType == event.type)
-                .map(h => h.handle(event));
+                .map(h => h.handle(event, player));
         });
     }
 }
@@ -98,14 +107,7 @@ class PlayerNode extends Node {
         this.eventHandlers.push({ eventType: 'join-game', handle: this.joinGame });
     }
 
-    private joinGame = (event: ISocketEvent) => {
-        // TODO: DRY it up: Player not found
-        const player = this.game.state.players.find(p => p.socketId === event.socketId);
-        if (player === undefined) {
-            this.game.sendMessage(`No player found with socketId: ${event.socketId}`);
-            return;
-        }
-
+    private joinGame = (event: ISocketEvent, player: Player) => {
         player.name = event.value;
         this.game.sendMessage(`${player.name} joined the game`);
         this.game.sync();
@@ -174,14 +176,7 @@ class CityNode extends Node {
         });
     }
 
-    private work = (event: ISocketEvent) => {
-        // TODO: DRY it up: Player not found
-        const player = this.game.state.players.find(p => p.socketId === event.socketId);
-        if (player === undefined) {
-            this.game.sendMessage(`No player found with socketId: ${event.socketId}`);
-            return;
-        }
-
+    private work = (event: ISocketEvent, player: Player) => {
         // Already upgrading
         if (player.city.work.inProgress === true) {
             this.game.sendMessage(`${player.name} is already working`);
@@ -192,14 +187,7 @@ class CityNode extends Node {
         this.game.sync();
     }
 
-    private upgrade = (event: ISocketEvent) => {
-        // TODO: DRY it up: Player not found
-        const player = this.game.state.players.find(p => p.socketId === event.socketId);
-        if (player === undefined) {
-            this.game.sendMessage(`No player found with socketId: ${event.socketId}`);
-            return;
-        }
-
+    private upgrade = (event: ISocketEvent, player: Player) => {
         // Already upgrading
         if (player.city.level.inProgress === true) {
             this.game.sendMessage(`${player.name} is already upgrading his city`);
@@ -267,14 +255,7 @@ class ArmyNode extends Node {
         });
     }
 
-    private recruit = (event: ISocketEvent) => {
-        // TODO: DRY it up: Player not found
-        const player = this.game.state.players.find(p => p.socketId === event.socketId);
-        if (player === undefined) {
-            this.game.sendMessage(`No player found with socketId: ${event.socketId}`);
-            return;
-        }
-
+    private recruit = (event: ISocketEvent, player: Player) => {
         // Already upgrading
         if (player.army.level.inProgress === true) {
             this.game.sendMessage(`${player.name} is already upgrading his army`);
@@ -294,14 +275,7 @@ class ArmyNode extends Node {
         this.game.sync();
     }
 
-    private upgrade = (event: ISocketEvent) => {
-        // TODO: DRY it up: Player not found
-        const player = this.game.state.players.find(p => p.socketId === event.socketId);
-        if (player === undefined) {
-            this.game.sendMessage(`No player found with socketId: ${event.socketId}`);
-            return;
-        }
-
+    private upgrade = (event: ISocketEvent, player: Player) => {
         // Already upgrading
         if (player.army.level.inProgress === true) {
             this.game.sendMessage(`${player.name} is already upgrading his army`);
@@ -373,14 +347,7 @@ class StartStopGameNode extends Node {
         this.eventHandlers.push({ eventType: 'stop-game', handle: this.stopGame });
     }
 
-    private startGame = (event: any) => {
-        // TODO: DRY it up: Player not found
-        const player = this.game.state.players.find(p => p.socketId === event.socketId);
-        if (player === undefined) {
-            this.game.sendMessage(`No player found with socketId: ${event.socketId}`);
-            return;
-        }
-
+    private startGame = (event: ISocketEvent, player: Player) => {
         if (this.game.state.players.length <= 0) {
             this.game.sendMessage(`Unable to start game, no players found`);
             return;
@@ -393,14 +360,7 @@ class StartStopGameNode extends Node {
         }, this.game.interval);
     }
 
-    private stopGame = (event?: any) => {
-        // TODO: DRY it up: Player not found
-        const player = this.game.state.players.find(p => p.socketId === event.socketId);
-        if (player === undefined) {
-            this.game.sendMessage(`No player found with socketId: ${event.socketId}`);
-            return;
-        }
-
+    private stopGame = (event: ISocketEvent, player: Player) => {
         this.game.state.phase = 'lobby';
         this.game.sendMessage(`${player.name} stopped the game`);
         this.game.sync();
@@ -417,14 +377,7 @@ class DevNode extends Node {
         this.eventHandlers.push({ eventType: 'dev-get-coins', handle: this.coin });
     }
 
-    private coin = (event: ISocketEvent) => {
-        // TODO: DRY it up: Player not found
-        const player = this.game.state.players.find(p => p.socketId === event.socketId);
-        if (player === undefined) {
-            this.game.sendMessage(`No player found with socketId: ${event.socketId}`);
-            return;
-        }
-
+    private coin = (event: ISocketEvent, player: Player) => {
         player.coins += parseInt(event.value);
         this.game.sendMessage(`${player.name} received ${event.value} coins`);
         this.game.sync();

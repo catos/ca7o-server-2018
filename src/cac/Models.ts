@@ -16,6 +16,7 @@ export interface ICityBonuses {
     defence: number;
 }
 
+// TODO: WTB interface of this class
 export class City {
     level: IProperty;
     work: IProperty;
@@ -45,6 +46,7 @@ export class City {
     }
 }
 
+// TODO: WTB interface of this class
 export class Army {
     level: IProperty;
     soldiers: IProperty;
@@ -69,6 +71,7 @@ export class Army {
     }
 }
 
+// TODO: WTB interface of this class
 export class Citizens {
     level: number;
     efficiency: number;
@@ -87,6 +90,7 @@ export class Citizens {
     }
 }
 
+// TODO: WTB interface of this class
 export class Player {
     socketId: string;
     name: string;
