@@ -1,7 +1,9 @@
-import { Player, IGameState, INode } from "./Models";
-import { SocketServerService } from "./socket/socket-server-service";
+import { IGameState } from "./i-game-state";
 import { ISocketEvent } from "./socket/i-socket-event";
 import { ISocketEventHandler } from "./socket/i-socket-event-handler";
+import { SocketServerService } from "./socket/socket-server-service";
+import { newPlayer, IPlayer } from "./i-player";
+import { INode } from "./i-node";
 
 /**
  * Main game class
@@ -51,7 +53,9 @@ export class CacServer {
 
     private onConnect = (client: SocketIO.Socket) => {
         console.log(`### Client Connected, id: ${client.id}`)
-        let player = new Player(client.id, `Player ${this.state.players.length + 1}`);
+        let player = newPlayer;
+        player.socketId = client.id;
+        player.name = `Player ${this.state.players.length + 1}`
         this.state.players.push(player);
         this.sync();
     }
@@ -107,7 +111,7 @@ class PlayerNode extends Node {
         this.eventHandlers.push({ eventType: 'join-game', handle: this.joinGame });
     }
 
-    private joinGame = (event: ISocketEvent, player: Player) => {
+    private joinGame = (event: ISocketEvent, player: IPlayer) => {
         player.name = event.value;
         this.game.sendMessage(`${player.name} joined the game`);
         this.game.sync();
@@ -136,7 +140,7 @@ class CityNode extends Node {
                 p.city.work.inProgress = false;
                 p.city.work.timeRemaining = p.city.work.timeToUpgrade;
 
-                const newCoins = Math.floor(p.citizens.workers.value * (p.city.bonuses.work / 100 + 1));
+                const newCoins = Math.floor(p.city.workers.value * (p.city.bonuses.work / 100 + 1));
                 p.coins += newCoins;
                 this.game.sendMessage(`${p.name} finished working and gained ${newCoins} coins`);
             }
@@ -176,7 +180,7 @@ class CityNode extends Node {
         });
     }
 
-    private work = (event: ISocketEvent, player: Player) => {
+    private work = (event: ISocketEvent, player: IPlayer) => {
         // Already upgrading
         if (player.city.work.inProgress === true) {
             this.game.sendMessage(`${player.name} is already working`);
@@ -187,7 +191,7 @@ class CityNode extends Node {
         this.game.sync();
     }
 
-    private upgrade = (event: ISocketEvent, player: Player) => {
+    private upgrade = (event: ISocketEvent, player: IPlayer) => {
         // Already upgrading
         if (player.city.level.inProgress === true) {
             this.game.sendMessage(`${player.name} is already upgrading his city`);
@@ -255,7 +259,7 @@ class ArmyNode extends Node {
         });
     }
 
-    private recruit = (event: ISocketEvent, player: Player) => {
+    private recruit = (event: ISocketEvent, player: IPlayer) => {
         // Already upgrading
         if (player.army.level.inProgress === true) {
             this.game.sendMessage(`${player.name} is already upgrading his army`);
@@ -275,7 +279,7 @@ class ArmyNode extends Node {
         this.game.sync();
     }
 
-    private upgrade = (event: ISocketEvent, player: Player) => {
+    private upgrade = (event: ISocketEvent, player: IPlayer) => {
         // Already upgrading
         if (player.army.level.inProgress === true) {
             this.game.sendMessage(`${player.name} is already upgrading his army`);
@@ -347,7 +351,7 @@ class StartStopGameNode extends Node {
         this.eventHandlers.push({ eventType: 'stop-game', handle: this.stopGame });
     }
 
-    private startGame = (event: ISocketEvent, player: Player) => {
+    private startGame = (event: ISocketEvent, player: IPlayer) => {
         if (this.game.state.players.length <= 0) {
             this.game.sendMessage(`Unable to start game, no players found`);
             return;
@@ -360,7 +364,7 @@ class StartStopGameNode extends Node {
         }, this.game.interval);
     }
 
-    private stopGame = (event: ISocketEvent, player: Player) => {
+    private stopGame = (event: ISocketEvent, player: IPlayer) => {
         this.game.state.phase = 'lobby';
         this.game.sendMessage(`${player.name} stopped the game`);
         this.game.sync();
@@ -377,7 +381,7 @@ class DevNode extends Node {
         this.eventHandlers.push({ eventType: 'dev-get-coins', handle: this.coin });
     }
 
-    private coin = (event: ISocketEvent, player: Player) => {
+    private coin = (event: ISocketEvent, player: IPlayer) => {
         player.coins += parseInt(event.value);
         this.game.sendMessage(`${player.name} received ${event.value} coins`);
         this.game.sync();
