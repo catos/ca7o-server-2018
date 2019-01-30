@@ -54,7 +54,7 @@ export const newPlayer: IPlayer = {
         },
         work: {
             value: 1,
-            cost: 0,
+            cost: 10,
             timeRemaining: 3000,
             timeToUpgrade: 3000,
             inProgress: false

@@ -125,6 +125,7 @@ class CityNode extends Node {
     constructor(game: CacServer) {
         super(game, 'City');
         this.eventHandlers.push({ eventType: 'city-work', handle: this.work });
+        this.eventHandlers.push({ eventType: 'city-hire-worker', handle: this.hireWorker });
         this.eventHandlers.push({ eventType: 'city-upgrade', handle: this.upgrade });
     }
 
@@ -143,6 +144,23 @@ class CityNode extends Node {
                 const newCoins = Math.floor(p.city.workers.value * (p.city.bonuses.work / 100 + 1));
                 p.coins += newCoins;
                 this.game.sendMessage(`${p.name} finished working and gained ${newCoins} coins`);
+            }
+
+            // Hire worker
+            if (p.city.workers.inProgress && p.city.workers.timeRemaining > 0) {
+                p.city.workers.timeRemaining -= this.game.interval;
+            }
+
+            if (p.city.workers.inProgress && p.city.workers.timeRemaining <= 0) {
+                p.city.workers.inProgress = false;
+                p.city.workers.timeRemaining = p.city.workers.timeToUpgrade;
+
+                p.city.workers.value++;
+
+                // Update work "cost" (aka. reward)
+                p.city.work.cost = Math.floor(p.city.workers.value * (p.city.bonuses.work / 100 + 1));
+
+                this.game.sendMessage(`${p.name} just hired another worker`);
             }
 
             // Leveling
@@ -167,6 +185,9 @@ class CityNode extends Node {
 
                 // Update cpt
                 p.cpt = p.city.level.value;
+                
+                // Update work "cost" (aka. reward)
+                p.city.work.cost = Math.floor(p.city.workers.value * (p.city.bonuses.work / 100 + 1));
 
                 this.game.sendMessage(`${p.name} upgraded his city to level ${p.city.level.value}`);
             }
@@ -188,6 +209,23 @@ class CityNode extends Node {
         }
 
         player.city.work.inProgress = true;
+        this.game.sync();
+    }
+
+    private hireWorker = (event: ISocketEvent, player: IPlayer) => {
+        if (player.city.workers.inProgress === true) {
+            this.game.sendMessage(`${player.name} is already hiring workers`);
+            return;
+        }
+
+        if (player.coins < player.city.workers.cost) {
+            this.game.sendMessage(`${player.name} cannot afford to hire any more workers`);
+            return;
+        }
+
+        player.coins -= player.city.workers.cost;
+        player.city.workers.inProgress = true;
+        this.game.sendMessage(`${player.name} started hiring workers`);
         this.game.sync();
     }
 
