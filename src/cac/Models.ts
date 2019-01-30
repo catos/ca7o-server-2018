@@ -48,7 +48,7 @@ export class City {
 export class Army {
     level: IProperty;
     soldiers: IProperty;
-    strength: number;
+    strengthBonus: number;
 
     constructor() {
         this.level = {
@@ -65,19 +65,25 @@ export class Army {
             timeToUpgrade: 5000,
             inProgress: false
         };
-        this.strength = 100;
+        this.strengthBonus = 0;
     }
 }
 
 export class Citizens {
     level: number;
     efficiency: number;
-    workers: number;
+    workers: IProperty;
 
     constructor() {
         this.level = 1;
         this.efficiency = 100;
-        this.workers = 10;
+        this.workers = {
+            value: 10,
+            cost: 10,
+            timeRemaining: 5000,
+            timeToUpgrade: 5000,
+            inProgress: false
+        };
     }
 }
 

@@ -56,6 +56,12 @@ export class CacServer {
         this.sync();
     }
 
+    private onDisconnect = (client: SocketIO.Socket) => {
+        console.log(`### Client Disconnected, socketId: ${client.id}`);
+        this.state.players = this.state.players.filter(p => p.socketId !== client.id);
+        this.sync();
+    }
+
     private onEvent = (event: ISocketEvent) => {
         console.log(`### Client Event, type: ${event.type}`);
         this.nodes.forEach(n => {
@@ -63,12 +69,6 @@ export class CacServer {
                 .filter(p => p.eventType == event.type)
                 .map(h => h.handle(event));
         });
-    }
-
-    private onDisconnect = (socket: SocketIO.Socket) => {
-        console.log(`### Client Disconnected, socketId: ${socket.id}`);
-        this.state.players = this.state.players.filter(p => p.socketId !== socket.id);
-        this.sync();
     }
 }
 
@@ -99,12 +99,16 @@ class PlayerNode extends Node {
     }
 
     private joinGame = (event: ISocketEvent) => {
+        // TODO: DRY it up: Player not found
         const player = this.game.state.players.find(p => p.socketId === event.socketId);
-        if (player !== undefined) {
-            player.name = event.value;
-            this.game.sendMessage(`${player.name} joined the game`);
-            this.game.sync();
+        if (player === undefined) {
+            this.game.sendMessage(`No player found with socketId: ${event.socketId}`);
+            return;
         }
+
+        player.name = event.value;
+        this.game.sendMessage(`${player.name} joined the game`);
+        this.game.sync();
     }
 }
 
@@ -130,7 +134,7 @@ class CityNode extends Node {
                 p.city.work.inProgress = false;
                 p.city.work.timeRemaining = p.city.work.timeToUpgrade;
 
-                const newCoins = Math.floor(p.citizens.workers * (p.city.bonuses.work / 100 + 1));
+                const newCoins = Math.floor(p.citizens.workers.value * (p.city.bonuses.work / 100 + 1));
                 p.coins += newCoins;
                 this.game.sendMessage(`${p.name} finished working and gained ${newCoins} coins`);
             }
@@ -146,7 +150,7 @@ class CityNode extends Node {
                 p.city.level.timeRemaining = p.city.level.timeToUpgrade;
 
                 // Increment city level
-                p.city.level.value++;                
+                p.city.level.value++;
                 p.city.level.cost += p.city.level.cost * p.city.level.value;
 
                 // Update bonuses
@@ -171,9 +175,8 @@ class CityNode extends Node {
     }
 
     private work = (event: ISocketEvent) => {
+        // TODO: DRY it up: Player not found
         const player = this.game.state.players.find(p => p.socketId === event.socketId);
-
-        // Player not found
         if (player === undefined) {
             this.game.sendMessage(`No player found with socketId: ${event.socketId}`);
             return;
@@ -190,9 +193,8 @@ class CityNode extends Node {
     }
 
     private upgrade = (event: ISocketEvent) => {
+        // TODO: DRY it up: Player not found
         const player = this.game.state.players.find(p => p.socketId === event.socketId);
-
-        // Player not found
         if (player === undefined) {
             this.game.sendMessage(`No player found with socketId: ${event.socketId}`);
             return;
@@ -240,7 +242,7 @@ class ArmyNode extends Node {
                 p.army.level.value++;
 
                 // Update bonuses
-                p.army.strength = (p.army.level.value - 1) * 10;
+                p.army.strengthBonus = (p.army.level.value - 1) * 10;
 
                 this.game.sendMessage(`${p.name} upgraded his army to level ${p.army.level.value}`);
             }
@@ -266,9 +268,8 @@ class ArmyNode extends Node {
     }
 
     private recruit = (event: ISocketEvent) => {
+        // TODO: DRY it up: Player not found
         const player = this.game.state.players.find(p => p.socketId === event.socketId);
-
-        // Player not found
         if (player === undefined) {
             this.game.sendMessage(`No player found with socketId: ${event.socketId}`);
             return;
@@ -294,9 +295,8 @@ class ArmyNode extends Node {
     }
 
     private upgrade = (event: ISocketEvent) => {
+        // TODO: DRY it up: Player not found
         const player = this.game.state.players.find(p => p.socketId === event.socketId);
-
-        // Player not found
         if (player === undefined) {
             this.game.sendMessage(`No player found with socketId: ${event.socketId}`);
             return;
@@ -374,7 +374,12 @@ class StartStopGameNode extends Node {
     }
 
     private startGame = (event: any) => {
-        console.log('### Start game');
+        // TODO: DRY it up: Player not found
+        const player = this.game.state.players.find(p => p.socketId === event.socketId);
+        if (player === undefined) {
+            this.game.sendMessage(`No player found with socketId: ${event.socketId}`);
+            return;
+        }
 
         if (this.game.state.players.length <= 0) {
             this.game.sendMessage(`Unable to start game, no players found`);
@@ -382,14 +387,22 @@ class StartStopGameNode extends Node {
         }
 
         this.game.state.phase = 'running';
+        this.game.sendMessage(`${player.name} started the game`);
         this.game.intervalId = setInterval(() => {
             this.game.update();
         }, this.game.interval);
     }
 
     private stopGame = (event?: any) => {
-        console.log('### Stop game');
+        // TODO: DRY it up: Player not found
+        const player = this.game.state.players.find(p => p.socketId === event.socketId);
+        if (player === undefined) {
+            this.game.sendMessage(`No player found with socketId: ${event.socketId}`);
+            return;
+        }
+
         this.game.state.phase = 'lobby';
+        this.game.sendMessage(`${player.name} stopped the game`);
         this.game.sync();
         clearInterval(this.game.intervalId);
     }
@@ -405,12 +418,16 @@ class DevNode extends Node {
     }
 
     private coin = (event: ISocketEvent) => {
+        // TODO: DRY it up: Player not found
         const player = this.game.state.players.find(p => p.socketId === event.socketId);
-        if (player !== undefined) {
-            player.coins += parseInt(event.value);
-            this.game.sendMessage(`${player.name} received ${event.value} coins`);
-            this.game.sync();
+        if (player === undefined) {
+            this.game.sendMessage(`No player found with socketId: ${event.socketId}`);
+            return;
         }
+
+        player.coins += parseInt(event.value);
+        this.game.sendMessage(`${player.name} received ${event.value} coins`);
+        this.game.sync();
     }
- 
+
 }
