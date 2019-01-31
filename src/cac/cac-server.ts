@@ -10,7 +10,7 @@ import { INode } from "./i-node";
  */
 export class CacServer {
     nodes: INode[] = [];
-    interval: number = 100;
+    interval: number = 250;
     intervalId: any = {};
     socketService: SocketServerService;
     state: IGameState = {
@@ -299,7 +299,7 @@ class ArmyNode extends Node {
 
     private recruit = (event: ISocketEvent, player: IPlayer) => {
         // Already upgrading
-        if (player.army.level.inProgress === true) {
+        if (player.army.soldiers.inProgress === true) {
             this.game.sendMessage(`${player.name} is already upgrading his army`);
             return;
         }
@@ -349,13 +349,22 @@ class GameStateSyncNode extends Node {
         super(game, "GameStateSync");
     }
 
-    tick = () => {
+    update = () => {
         // No players ?
         if (this.game.state.players.length <= 0) {
             return;
         }
 
         this.game.sync();
+    }
+
+    tick = () => {
+        // // No players ?
+        // if (this.game.state.players.length <= 0) {
+        //     return;
+        // }
+
+        // this.game.sync();
     }
 }
 
