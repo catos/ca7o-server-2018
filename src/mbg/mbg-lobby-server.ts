@@ -1,8 +1,10 @@
-import { ISocketEvent, SocketServerService } from '../shared/socket-server-service';
+import { ISocketEvent, SocketServerService, ISocketClient } from '../shared/socket-server-service';
+
+export interface IMbgPlayer extends ISocketClient { }
 
 export class MbgLobbyServer {
     socketService: SocketServerService;
-    clients: string[] = [];
+    players: IMbgPlayer[] = [];
     rooms: string[] = ['room1', 'room2', 'room3'];
 
     constructor(io: SocketIO.Server) {
@@ -12,8 +14,13 @@ export class MbgLobbyServer {
 
     private onConnect = (client: SocketIO.Socket) => {
         console.log(`### MbgLobbyServer Client Connected, id: ${client.id}`)
-        this.clients.push(client.id);
-        this.socketService.emit('get-clients', this.clients);
+        this.players.push({
+            socketId: client.id,
+            name: ''
+        });
+        this.socketService.emit('get-clients', this.players);
+        this.socketService.emit('get-rooms', this.rooms);
+
         // let player = newPlayer;
         // player.socketId = client.id;
         // player.name = `Player ${this.state.players.length + 1}`
@@ -23,7 +30,9 @@ export class MbgLobbyServer {
 
     private onDisconnect = (client: SocketIO.Socket) => {
         console.log(`### MbgLobbyServer Client Disconnected, socketId: ${client.id}`);
-        this.clients = this.clients.filter(p => p !== client.id);
+        this.players = this.players.filter(p => p.socketId !== client.id);
+        this.socketService.emit('get-players', this.players);
+
         // this.state.players = this.state.players.filter(p => p.socketId !== client.id);
         // this.sync();
     }
@@ -47,6 +56,20 @@ export class MbgLobbyServer {
 
         if (event.type === 'get-rooms') {
             this.socketService.emit('get-rooms', this.rooms);
+        }
+
+        if (event.type === 'get-players') {
+            this.socketService.emit('get-players', this.players);
+        }
+
+        if (event.type === 'join') {
+            console.log('join', event.socketId, event.value);
+
+            var player = this.players.find(p => p.socketId === event.socketId);
+            console.log('player', player);
+            
+            player.name = event.value;
+            this.socketService.emit('get-players', this.players);
         }
     }
 }
