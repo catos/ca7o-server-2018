@@ -2,6 +2,7 @@ import { SocketServerService, ISocketEvent } from '../shared/socket-server-servi
 
 export class MbgLobbyServer {
     socketService: SocketServerService;
+    rooms: string[] = ['room1', 'room2', 'room3'];
 
     constructor(io: SocketIO.Server) {
         console.log('### MbgLobbyServer created');
@@ -39,6 +40,11 @@ export class MbgLobbyServer {
         //         .filter(p => p.eventType == event.type)
         //         .map(h => h.handle(event, player));
         // });
-    }
 
+        if (event.type === 'get-rooms') {
+            console.log('emit get-rooms', this.rooms);
+            
+            this.socketService.emit(this.rooms, 'get-rooms');
+        }
+    }
 }

@@ -18,6 +18,7 @@ import { AuthEndpoint } from './auth/auth.endpoint';
 import { UserEndpoint } from './user/user.endpoint'
 import { RecipesEndpoint } from './recipes/recipes.endpoint';
 import { WordsEndpoint } from './wesketch/words.endpoint';
+import { MbgLobbyServer } from './mbg/mbg-lobby-server';
 
 /**
  * The server.
@@ -129,9 +130,11 @@ export class Server {
         // Create Wesketch server
         new WesketchServer(io);
 
-        // Create Ticker server
-        const cacGame = new CacServer(io);
-        // cacServer.init(io);
+        // Create Cac server
+        new CacServer(io);
+
+        // Create Mbg server
+        new MbgLobbyServer(io);
 
         // listen on provided ports
         httpServer.listen(serverConfig.port, function () {
