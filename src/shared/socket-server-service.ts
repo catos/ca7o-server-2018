@@ -1,5 +1,9 @@
-import { ISocketEvent } from "./i-socket-event";
-
+export interface ISocketEvent {
+    socketId: string;
+    timestamp: number;
+    type: string;
+    value: any;
+}
 /**
  * CacSocket - Responsible for socket communication & offers callbacks for events and connections
  */
@@ -15,7 +19,7 @@ export class SocketServerService {
         this.io = io.of(`/${channel}`);
         this.io.on('connection', (client: SocketIO.Socket) => {
             onConnect(client);
-            client.on('event', onEvent);
+            client.on('event', (event: ISocketEvent) => onEvent(event));
             client.on('disconnect', () => onDisconnect(client));
             client.on('connect_timeout', (timeout) => console.log(`Client timeout, socketId: ${client.id}, timeout: ${timeout}`))
             client.on('connect_error', (error) => console.log(`Client error, socketId: ${client.id}, error: ${error}`));

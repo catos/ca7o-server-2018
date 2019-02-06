@@ -1,7 +1,6 @@
+import { ISocketEvent, SocketServerService } from "../shared/socket-server-service";
 import { IGameState } from "./i-game-state";
-import { ISocketEvent } from "./socket/i-socket-event";
 import { ISocketEventHandler } from "./socket/i-socket-event-handler";
-import { SocketServerService } from "./socket/socket-server-service";
 import { newPlayer, IPlayer } from "./i-player";
 import { INode } from "./i-node";
 
