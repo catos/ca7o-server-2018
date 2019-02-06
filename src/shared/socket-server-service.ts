@@ -1,9 +1,20 @@
+export interface ISocketClient {
+    socketId: string;
+    name: string;
+}
+
 export interface ISocketEvent {
     socketId: string;
     timestamp: number;
     type: string;
     value: any;
 }
+
+export interface ISocketEventHandler {
+    type: string;
+    handle: (event: ISocketEvent, client: ISocketClient) => void;
+}
+
 /**
  * CacSocket - Responsible for socket communication & offers callbacks for events and connections
  */
@@ -33,9 +44,9 @@ export class SocketServerService {
         this.io.emit('event', event);
     }
 
-    emit = (value: any, type: string = 'message', socketId: string = 'n/a') => {
+    emit = (type: string = 'message', value: any) => {
         const event: ISocketEvent = {
-            socketId,
+            socketId: 'na',
             timestamp: Date.now(),
             type,
             value

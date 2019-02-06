@@ -1,7 +1,8 @@
-import { SocketServerService, ISocketEvent } from '../shared/socket-server-service';
+import { ISocketEvent, SocketServerService } from '../shared/socket-server-service';
 
 export class MbgLobbyServer {
     socketService: SocketServerService;
+    clients: string[] = [];
     rooms: string[] = ['room1', 'room2', 'room3'];
 
     constructor(io: SocketIO.Server) {
@@ -11,6 +12,8 @@ export class MbgLobbyServer {
 
     private onConnect = (client: SocketIO.Socket) => {
         console.log(`### MbgLobbyServer Client Connected, id: ${client.id}`)
+        this.clients.push(client.id);
+        this.socketService.emit('get-clients', this.clients);
         // let player = newPlayer;
         // player.socketId = client.id;
         // player.name = `Player ${this.state.players.length + 1}`
@@ -20,6 +23,7 @@ export class MbgLobbyServer {
 
     private onDisconnect = (client: SocketIO.Socket) => {
         console.log(`### MbgLobbyServer Client Disconnected, socketId: ${client.id}`);
+        this.clients = this.clients.filter(p => p !== client.id);
         // this.state.players = this.state.players.filter(p => p.socketId !== client.id);
         // this.sync();
     }
@@ -42,9 +46,7 @@ export class MbgLobbyServer {
         // });
 
         if (event.type === 'get-rooms') {
-            console.log('emit get-rooms', this.rooms);
-            
-            this.socketService.emit(this.rooms, 'get-rooms');
+            this.socketService.emit('get-rooms', this.rooms);
         }
     }
 }

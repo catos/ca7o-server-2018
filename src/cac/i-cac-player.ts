@@ -1,3 +1,5 @@
+import { ISocketClient } from "../shared/socket-server-service";
+
 export interface IProperty {
     value: number;
     cost: number;
@@ -26,9 +28,7 @@ export interface IArmy {
     strengthBonus: number;
 }
 
-export interface IPlayer {
-    socketId: string;
-    name: string;
+export interface ICacPlayer extends ISocketClient {
     coins: number;
     cpt: number;
     isDead: boolean;
@@ -37,7 +37,7 @@ export interface IPlayer {
     army: IArmy;
 }
 
-export const newPlayer: IPlayer = {
+export const newPlayer: ICacPlayer = {
     socketId: '',
     name: '',
     coins: 100,
