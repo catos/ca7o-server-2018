@@ -71,5 +71,12 @@ export class MbgLobbyServer {
             player.name = event.value;
             this.socketService.emit('get-players', this.players);
         }
+
+        if (event.type === 'join-room') {
+            console.log('join-room', event.socketId, event.value);
+
+            var player = this.players.find(p => p.socketId === event.socketId);
+            console.log(`player ${player.name} wants to join room: ${event.value}`);
+        }
     }
 }
