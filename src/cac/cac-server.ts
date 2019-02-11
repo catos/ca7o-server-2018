@@ -51,9 +51,9 @@ export class CacServer {
 
     private onConnect = (client: SocketIO.Socket) => {
         console.log(`### CacServer Client Connected, id: ${client.id}`)
-        let player = newPlayer;
+        let player = {...newPlayer};
         player.socketId = client.id;
-        player.name = `Player ${this.state.players.length + 1}`
+        player.name = client.id.substr(5, 5);
         this.state.players.push(player);
         this.sync();
     }
