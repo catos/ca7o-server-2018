@@ -6,6 +6,7 @@ import { IEndpoint } from '../shared/endpoint.interface';
 import { AuthService } from "../auth/auth.service";
 
 import { Recipe, IRecipe } from './recipe.model';
+import { RECIPES_SEED } from './recipes.seed';
 
 
 
@@ -17,6 +18,7 @@ export class RecipesEndpoint implements IEndpoint {
 
         router.all(path + '/*', this.init);
         router.get(path + '/', this.authService.isAuthenticated, this.all);
+        router.get(path + '/seed', this.authService.isAuthenticated, this.seed);
         router.get(path + '/random-week', this.authService.isAuthenticated, this.randomWeek);
         router.get(path + '/:id', this.authService.isAuthenticated, this.get);
         router.post(path + '/', this.authService.isAuthenticated, this.create);
@@ -65,24 +67,35 @@ export class RecipesEndpoint implements IEndpoint {
     all = (request: Request, response: Response, next: NextFunction) => {
         let filters = {};
 
+        const tags = request.query.tags !== undefined && request.query.tags.length > 0
+            ? request.query.tags.split(',') as string[]
+            : [];
+        console.log('tags:', tags, tags.includes('rask'));
+
+        let time = request.query.time !== undefined
+            ? parseInt(request.query.time) + 1
+            : tags.includes('rask')
+                ? 31
+                : undefined;
+        console.log('time:', time);
+
         if (request.query.q !== undefined) {
             filters = Object.assign({ name: new RegExp(request.query.q, 'i') }, filters);
         }
 
-        if (request.query.time !== undefined) {
-            const time = parseInt(request.query.time) + 1;
+        if (time !== undefined) {
+            console.log('filter on time!', time);
             filters = Object.assign({ time: { $lt: time } }, filters);
         }
 
-        if (request.query.tags !== undefined && request.query.tags.length > 0) {
-            const tags = request.query.tags.split(',') as string[];
+        if (tags.length) {
             filters = Object.assign({ tags: { $all: tags } }, filters);
         }
 
         let query = Recipe.find(filters);
 
         // Paging
-        const take = 10;
+        const take = 21;
         let page = 0;
         if (request.query.page !== undefined) {
             page = +(request.query.page - 1);
@@ -90,7 +103,7 @@ export class RecipesEndpoint implements IEndpoint {
                 .skip(page * take)
                 .limit(take);
         }
-        
+
         // Sort
         query = query.sort('-created');
 
@@ -113,5 +126,18 @@ export class RecipesEndpoint implements IEndpoint {
                 response.json(result);
             })
             .catch(error => this.errorHandler(error, response));
+    }
+
+    seed = (request: Request, response: Response, next: NextFunction) => {
+        RECIPES_SEED.map(recipe => {
+            recipe.guid = uuidv4();
+
+            console.log('RECIPES_SEED, recipe: ', recipe.name);
+            Recipe.create(recipe)
+                .then(result => console.log(`Recipe ${recipe.name} seeded`))
+                .catch(error => console.log(`Error seeding recipe ${recipe.name}: ${error}`));
+        });
+
+        response.json({ message: `${RECIPES_SEED.length} recipes seeded` })
     }
 }

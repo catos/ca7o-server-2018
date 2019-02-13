@@ -1,4 +1,4 @@
-[
+export const RECIPES_SEED = [
     {
         "guid": "6fbbeb10-546b-448c-9d2e-f34e38d3655c",
         "created": 1530966844530,
@@ -1158,4 +1158,4 @@
             }
         ]
     }
-]
+];
