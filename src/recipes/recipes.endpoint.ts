@@ -64,7 +64,7 @@ export class RecipesEndpoint implements IEndpoint {
     }
 
 
-    all = (request: Request, response: Response, next: NextFunction) => {
+    all = async(request: Request, response: Response, next: NextFunction) => {
         let filters = {};
 
         const tags = request.query.tags !== undefined && request.query.tags.length > 0
@@ -94,6 +94,9 @@ export class RecipesEndpoint implements IEndpoint {
 
         let query = Recipe.find(filters);
 
+        // Get document-count in collection
+        const count = await Recipe.find(filters).countDocuments();
+
         // Paging
         const take = 21;
         let page = 0;
@@ -108,7 +111,16 @@ export class RecipesEndpoint implements IEndpoint {
         query = query.sort('-created');
 
         query.exec()
-            .then(result => response.json(result))
+            .then(recipes => {
+                const result = {
+                    count,
+                    totalPages: Math.ceil(count / take),
+                    currentPage: page + 1,
+                    take,
+                    recipes
+                };                
+                response.json(result);
+            })
             .catch(error => this.errorHandler(error, response));
     }
 
